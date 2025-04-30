@@ -1,6 +1,5 @@
 # NewPipeExtractor-KMP
 
-
 This repository is a Compose Multiplatform-compatible adaptation of the [NewPipeExtractor](https://github.com/TeamNewPipe/NewPipeExtractor), forked from version `v0.24.5`. It is intended for extracting YouTube videos and comments within Kotlin Multiplatform projects.
 
 ---
@@ -15,16 +14,30 @@ This repository is a Compose Multiplatform-compatible adaptation of the [NewPipe
 
 ---
 
-## ✅ Changes
+## ✅ Migration Themes & Checklist
 
-- Migrated core logic from Java to Kotlin.
-- Android-specific components were modularized or removed.
-- Prepared for integration with Compose Multiplatform (Android/iOS).
+### Java Dependency Removal
+- [ ] Remove core Java-only APIs (e.g. `Serializable`, `Optional`, `Pattern`, `URL`, `Objects`)
+- [ ] Replace Java collections, streams, and IO with Kotlin equivalents
+
+### Rhino JavaScript Handling
+- [ ] Decide on Rhino integration approach (e.g. maintain, isolate, or replace)
+
+### Custom Kotlin Object Replacement
+- [ ] Convert Java utility classes (`Pair`, `ManifestCache`, etc.) to idiomatic Kotlin
+
+### Serialization Strategy Change
+- [ ] Replace `Serializable` with `@Serializable` and `kotlinx.serialization`
+
+### nanojson Removal
+- [ ] Remove `nanojson` and migrate to `kotlinx.serialization.json.*`
 
 ---
 
-## 🧪 Status
-
+## 🧪 Testing & Integration
+- [ ] Add shared `commonTest` cases
+- [ ] Use `runBlocking` and mock data for multiplatform testability
+- [ ] (Optional) Include Compose-based demo or preview usage
 
 ---
 
@@ -40,4 +53,3 @@ This project is licensed under the **GNU General Public License v3** or (at your
 
 - New files and contributions in this repository are © 2025 [@yushosei](https://github.com/yushosei).
 - All original content from the forked NewPipeExtractor remains © the [NewPipe Team](https://github.com/TeamNewPipe).
-
