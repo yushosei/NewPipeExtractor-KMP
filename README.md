@@ -9,8 +9,19 @@ This repository is a Compose Multiplatform-compatible adaptation of the [NewPipe
 - Migrated to **Kotlin (Multiplatform)**.
 - Based on **NewPipeExtractor v0.24.5**.
 - Internal modules have been refactored and improved for better readability, structure, and platform compatibility.
+- Replaced `nanojson` with a **pure Kotlin implementation**.
 - **Public APIs and function call patterns remain unchanged** to ensure compatibility with the original usage.
 - This project aims to serve as a foundation for integrating content extraction logic into Compose Multiplatform applications.
+
+---
+
+## ⚠️ Note on `nanojson` Replacement
+
+This project includes a reimplementation of `nanojson` in **pure Kotlin**, rewritten from scratch to work within the Kotlin Multiplatform (NewPipeExtractor).
+
+- ✅ The implementation has been **tested in conjunction with NewPipe** and verified to extract data correctly.
+- ⚠ **However, this Kotlin version of nanojson is an interim solution.** It was built for functional compatibility and **does not guarantee performance parity** with the original Java version.
+- It exists **only to enable current operation** and **may be replaced in the future** with a more robust or performant JSON parser tailored for KMP.
 
 ---
 
@@ -29,8 +40,25 @@ This repository is a Compose Multiplatform-compatible adaptation of the [NewPipe
 ### Serialization Strategy Change
 - [ ] Replace `Serializable` with `@Serializable` and `kotlinx.serialization`
 
-### nanojson Removal
-- [ ] Remove `nanojson` and migrate to `kotlinx.serialization.json.*`
+---
+
+### Lightweight JSON Optimization
+- [x] Remove `nanojson` dependency
+- [x] Reimplement `nanojson` using pure Kotlin logic
+- [ ] Evaluate long-term direction for JSON handling:
+  - [ ] Convert to a **pure Kotlin @Serializable-based structure**
+  - [ ] More faithfully replicate **original nanojson behavior** for performance and features
+
+---
+
+### Feature Migration Status (NewPipeExtractor Modules)
+> Core functionality has been migrated but not yet fully cleaned or published.
+
+- [x] Search functionality migrated to Kotlin
+- [x] Search suggestion handling migrated to Kotlin
+- [x] Stream extraction (YouTube video info) migrated to Kotlin
+- [x] Audio stream extraction migrated to Kotlin
+- [ ] Code cleanup and module publishing pending
 
 ---
 
