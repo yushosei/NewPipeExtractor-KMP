@@ -15,6 +15,22 @@ This repository is a Compose Multiplatform-compatible adaptation of the [NewPipe
 
 ---
 
+
+
+## 🎥 Demo Video
+
+
+https://github.com/user-attachments/assets/d4221163-619f-49fa-83a5-48b580da29af
+> ✅ This demo showcases **successful audio stream extraction** and **search suggestions retrieval** on both **Android** and **iOS** using Kotlin Multiplatform code.  
+> Although the test focused on audio streams for simplicity, the extractor is also capable of handling **video streams**.
+> 
+> All core logic is written in **pure Kotlin**, making it platform-independent and theoretically usable across **desktop and web environments** too.  
+>  
+> The current implementation has been verified on Android and iOS targets using Compose Multiplatform UI.  
+>  
+> 📦 We plan to release a cleaned-up and library-ready version of the module in the near future to facilitate reuse and integration !
+
+
 ## ⚠️ Note on `nanojson` Replacement
 
 This project includes a reimplementation of `nanojson` in **pure Kotlin**, rewritten from scratch to work within the Kotlin Multiplatform (NewPipeExtractor).
