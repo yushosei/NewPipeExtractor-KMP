@@ -90,6 +90,7 @@ kotlin {
             implementation(libs.coil.network.ktor)
         }
         desktopMain.dependencies {
+            implementation(compose.desktop.macos_arm64)
             implementation(compose.desktop.currentOs)
             implementation(libs.kotlinx.coroutines.swing)
             implementation(libs.vlcj)
