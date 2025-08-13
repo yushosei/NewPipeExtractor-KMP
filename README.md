@@ -19,8 +19,21 @@ This repository is a Compose Multiplatform-compatible adaptation of the [NewPipe
 
 ## 🎥 Demo Video
 
+## Android & iOS
 
 https://github.com/user-attachments/assets/d4221163-619f-49fa-83a5-48b580da29af
+
+## Web
+
+https://github.com/user-attachments/assets/5f8ab309-4e46-40fb-9911-ff82c18c5a3e
+
+## Desktop
+
+https://github.com/user-attachments/assets/35e628ea-50ad-4cba-a970-7e5cb4705823
+
+
+
+
 > ✅ This demo showcases **successful audio stream extraction** and **search suggestions retrieval** on both **Android** and **iOS** using Kotlin Multiplatform code.  
 > Although the test focused on audio streams for simplicity, the extractor is also capable of handling **video streams**.
 > 
