@@ -1,10 +1,5 @@
 package com.yushosei.newpipe.util
 
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.IO
-import kotlinx.coroutines.sync.Mutex
-import kotlinx.coroutines.sync.withLock
-import kotlinx.coroutines.withContext
 import com.yushosei.newpipe.extractor.Info
 import com.yushosei.newpipe.extractor.InfoItem
 import com.yushosei.newpipe.extractor.ListExtractor
@@ -13,6 +8,10 @@ import com.yushosei.newpipe.extractor.Page
 import com.yushosei.newpipe.extractor.search.SearchInfo
 import com.yushosei.newpipe.extractor.stream.StreamInfo
 import com.yushosei.newpipe.extractor.suggestion.SuggestionExtractor
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
+import kotlinx.coroutines.withContext
 
 object ExtractorHelper {
     private val CACHE by lazy { InfoCache.instance }
@@ -27,7 +26,7 @@ object ExtractorHelper {
         serviceId: Int, searchString: String,
         contentFilter: List<String>,
         sortFilter: String
-    ): SearchInfo = withContext(Dispatchers.IO) {
+    ): SearchInfo = withContext(Dispatchers.Main) {
         checkServiceId(serviceId)
         val service = NewPipe.getService(serviceId)
         return@withContext SearchInfo.getInfo(
@@ -40,7 +39,7 @@ object ExtractorHelper {
         )
     }
 
-    fun getMoreSearchItems(
+    suspend fun getMoreSearchItems(
         serviceId: Int,
         searchString: String,
         contentFilter: List<String>,
@@ -57,7 +56,7 @@ object ExtractorHelper {
     }
 
     suspend fun suggestionsFor(serviceId: Int, query: String): List<String> =
-        withContext(Dispatchers.IO) {
+        withContext(Dispatchers.Main) {
             checkServiceId(serviceId)
             val extractor: SuggestionExtractor = NewPipe.getService(serviceId).suggestionExtractor
             return@withContext extractor.suggestionList(query)
@@ -70,11 +69,11 @@ object ExtractorHelper {
     suspend fun getStreamInfo(
         serviceId: Int,
         url: String,
-        forceLoad: Boolean
-    ): StreamInfo = withContext(Dispatchers.IO) {
+        forceLoad: Boolean = false
+    ): StreamInfo = withContext(Dispatchers.Main) {
         checkServiceId(serviceId)
         loadingLock.withLock { loadingUrls.add(url) }
-        
+
         try {
             val info = checkCache(
                 forceLoad,

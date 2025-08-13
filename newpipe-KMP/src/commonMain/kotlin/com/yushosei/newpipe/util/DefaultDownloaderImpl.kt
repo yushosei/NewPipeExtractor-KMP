@@ -19,6 +19,10 @@
 
 package com.yushosei.newpipe.util
 
+import com.yushosei.newpipe.extractor.downloader.Downloader
+import com.yushosei.newpipe.extractor.downloader.Request
+import com.yushosei.newpipe.extractor.downloader.Response
+import com.yushosei.newpipe.extractor.exceptions.ReCaptchaException
 import io.ktor.client.HttpClient
 import io.ktor.client.plugins.HttpTimeout
 import io.ktor.client.request.head
@@ -32,11 +36,6 @@ import io.ktor.client.statement.request
 import io.ktor.http.HttpHeaders
 import io.ktor.http.HttpMethod
 import kotlinx.coroutines.cancel
-import kotlinx.coroutines.runBlocking
-import com.yushosei.newpipe.extractor.downloader.Downloader
-import com.yushosei.newpipe.extractor.downloader.Request
-import com.yushosei.newpipe.extractor.downloader.Response
-import com.yushosei.newpipe.extractor.exceptions.ReCaptchaException
 import kotlin.collections.set
 
 class DefaultDownloaderImpl(
@@ -99,14 +98,13 @@ class DefaultDownloaderImpl(
     /* ---------------------------------------------------- HEAD convenience */
 
     @Throws(Exception::class)
-    fun getContentLength(url: String?): Long {
+    suspend fun getContentLength(url: String?): Long {
         if (url == null) throw Exception("URL is null")
         return try {
-            runBlocking {
-                val resp: HttpResponse = client.head(url)
-                resp.headers[HttpHeaders.ContentLength]?.toLong()
-                    ?: throw Exception("Missing Content‑Length header")
-            }
+            val resp: HttpResponse = client.head(url)
+            resp.headers[HttpHeaders.ContentLength]?.toLong()
+                ?: throw Exception("Missing Content‑Length header")
+
         } catch (e: NumberFormatException) {
             throw Exception("Invalid content length", e)
         } catch (e: ReCaptchaException) {
@@ -115,7 +113,7 @@ class DefaultDownloaderImpl(
     }
 
     /* ------------------------------------------------------------- main IO */
-    override fun execute(request: Request): Response = runBlocking {
+    override suspend fun execute(request: Request): Response {
         // ─── build request ────────────────────────────────────────────────
         val httpResponse: HttpResponse = client.request {
             url(request.url())
@@ -160,7 +158,7 @@ class DefaultDownloaderImpl(
             httpResponse.request.url.toString()
         )
         httpResponse.cancel()
-        response
+        return response
     }
 
     /* ----------------------------------------------------------- helpers  */

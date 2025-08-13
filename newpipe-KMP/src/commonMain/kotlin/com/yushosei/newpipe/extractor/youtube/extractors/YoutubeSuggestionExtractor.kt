@@ -32,7 +32,7 @@ import com.yushosei.newpipe.nanojson.JsonParserException
 
 class YoutubeSuggestionExtractor(service: StreamingService) : SuggestionExtractor(service) {
     
-    override fun suggestionList(query: String): List<String> {
+    override suspend fun suggestionList(query: String): List<String> {
         val url = ("https://suggestqueries-clients6.youtube.com/complete/search"
                 + "?client=" + "youtube"
                 + "&ds=" + "yt"

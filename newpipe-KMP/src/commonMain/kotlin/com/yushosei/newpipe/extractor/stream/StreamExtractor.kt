@@ -30,6 +30,7 @@ import com.yushosei.newpipe.extractor.exceptions.ParsingException
 import com.yushosei.newpipe.extractor.linkhandler.LinkHandler
 import com.yushosei.newpipe.extractor.utils.Parser
 import com.yushosei.newpipe.extractor.utils.Parser.RegexException
+
 /**
  * Scrapes information from a video/audio streaming service (eg, YouTube).
  */
@@ -38,10 +39,10 @@ abstract class StreamExtractor(service: StreamingService, linkHandler: LinkHandl
     abstract val dashMpdUrl: String
     abstract val hlsUrl: String
 
-    
+
     abstract val thumbnails: List<Image>
 
-    
+
     open val description: Description
         /**
          * This is the stream description.
@@ -51,7 +52,7 @@ abstract class StreamExtractor(service: StreamingService, linkHandler: LinkHandl
          */
         get() = Description.EMPTY_DESCRIPTION
 
-    
+
     open val length: Long
         /**
          * This should return the length of a video in seconds.
@@ -60,7 +61,7 @@ abstract class StreamExtractor(service: StreamingService, linkHandler: LinkHandl
          */
         get() = 0
 
-    
+
     open val timeStamp: Long
         /**
          * If the url you are currently handling contains a time stamp/seek, you can return the
@@ -71,13 +72,11 @@ abstract class StreamExtractor(service: StreamingService, linkHandler: LinkHandl
          */
         get() = 0
 
-    
+
     abstract val uploaderName: String
 
-    
-    abstract val audioStreams: List<AudioStream>
+    abstract suspend fun audioStreams(): List<AudioStream>
 
-    
     abstract val streamType: StreamType
 
     open val errorMessage: String?
@@ -96,7 +95,7 @@ abstract class StreamExtractor(service: StreamingService, linkHandler: LinkHandl
      *
      * @return the time stamp/seek for the video in seconds
      */
-    
+
     protected fun getTimestampSeconds(regexPattern: String): Long {
         val timestamp: String
         try {
@@ -140,7 +139,7 @@ abstract class StreamExtractor(service: StreamingService, linkHandler: LinkHandl
         }
     }
 
-    
+
     open val category: String
         /**
          * The name of the category of the stream.
@@ -150,7 +149,7 @@ abstract class StreamExtractor(service: StreamingService, linkHandler: LinkHandl
          */
         get() = ""
 
-    
+
     open val languageInfo: Locale?
         /**
          * The locale language of the stream.
@@ -162,7 +161,7 @@ abstract class StreamExtractor(service: StreamingService, linkHandler: LinkHandl
          */
         get() = null
 
-    
+
     open val tags: List<String>
         /**
          * The list of tags of the stream.
@@ -173,7 +172,6 @@ abstract class StreamExtractor(service: StreamingService, linkHandler: LinkHandl
         get() = emptyList<String>()
 
 
-    
     open val streamSegments: List<StreamSegment>
         /**
          * The list of stream segments by timestamps for the stream.
@@ -183,7 +181,7 @@ abstract class StreamExtractor(service: StreamingService, linkHandler: LinkHandl
          */
         get() = emptyList<StreamSegment>()
 
-    
+
     open val metaInfo: List<MetaInfo>
         /**
          * Meta information about the stream.

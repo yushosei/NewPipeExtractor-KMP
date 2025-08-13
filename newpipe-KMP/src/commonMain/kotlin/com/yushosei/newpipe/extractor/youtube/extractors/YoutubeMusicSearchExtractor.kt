@@ -31,7 +31,7 @@ class YoutubeMusicSearchExtractor(
     private var initialData: JsonObject? = null
 
     
-    override fun onFetchPage(downloader: Downloader) {
+    override suspend fun onFetchPage(downloader: Downloader) {
         val url = ("https://music.youtube.com/youtubei/v1/search?"
                 + YoutubeParsingHelper.DISABLE_PRETTY_PRINT_PARAMETER)
 
@@ -162,7 +162,7 @@ class YoutubeMusicSearchExtractor(
         }
 
     
-    override fun getPage(page: Page?): InfoItemsPage<InfoItem> {
+    override suspend fun getPage(page: Page?): InfoItemsPage<InfoItem> {
         require(!(page == null || Utils.isNullOrEmpty(page.url))) { "Page doesn't contain an URL" }
 
         val collector = MultiInfoItemsCollector(serviceId)

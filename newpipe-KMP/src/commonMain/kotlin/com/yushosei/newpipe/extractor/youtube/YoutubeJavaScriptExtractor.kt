@@ -42,8 +42,8 @@ internal object YoutubeJavaScriptExtractor {
      * @return the whole JavaScript base player file as a string
      * @throws ParsingException if the extraction of the file failed
      */
-    
-    fun extractJavaScriptPlayerCode(videoId: String): String {
+
+    suspend fun extractJavaScriptPlayerCode(videoId: String): String {
         var url: String
         try {
             url = extractJavaScriptUrlWithIframeResource()
@@ -71,8 +71,8 @@ internal object YoutubeJavaScriptExtractor {
     }
 
 
-    
-    fun extractJavaScriptUrlWithIframeResource(): String {
+
+    suspend fun extractJavaScriptUrlWithIframeResource(): String {
         val iframeUrl: String
         val iframeContent: String
         try {
@@ -97,8 +97,8 @@ internal object YoutubeJavaScriptExtractor {
         }
     }
 
-    
-    fun extractJavaScriptUrlWithEmbedWatchPage(videoId: String): String {
+
+    suspend fun extractJavaScriptUrlWithEmbedWatchPage(videoId: String): String {
         val embedUrl = "https://www.youtube.com/embed/$videoId"
         val embedPageContent = try {
             NewPipe.downloader
@@ -142,8 +142,8 @@ internal object YoutubeJavaScriptExtractor {
     }
 
 
-    
-    private fun downloadJavaScriptCode(javaScriptPlayerUrl: String): String {
+
+    suspend private fun downloadJavaScriptCode(javaScriptPlayerUrl: String): String {
         try {
             return NewPipe.downloader
                 .get(javaScriptPlayerUrl, Localization.DEFAULT)

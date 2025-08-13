@@ -19,7 +19,7 @@ abstract class Downloader {
      * @return the result of the GET request
      */
 
-    fun get(url: String?, localization: Localization?): Response {
+    suspend fun get(url: String?, localization: Localization?): Response {
         return get(url, emptyMap(), localization)
     }
 
@@ -54,7 +54,7 @@ abstract class Downloader {
      */
 
 
-    fun get(
+    suspend fun get(
         url: String?,
         headers: Map<String, List<String>> = emptyMap(),
         localization: Localization? = NewPipe.getPreferredLocalization()
@@ -84,7 +84,7 @@ abstract class Downloader {
      */
 
 
-    fun head(url: String?, headers: Map<String, List<String>> = emptyMap()): Response {
+    suspend fun head(url: String?, headers: Map<String, List<String>> = emptyMap()): Response {
         return execute(
             Request.newBuilder()
                 .head(url)
@@ -116,7 +116,7 @@ abstract class Downloader {
      */
 
 
-    fun post(
+    suspend fun post(
         url: String?,
         headers: Map<String, List<String>>?,
         dataToSend: ByteArray?,
@@ -146,7 +146,7 @@ abstract class Downloader {
      * @see .post
      */
 
-    fun postWithContentType(
+    suspend fun postWithContentType(
         url: String?,
         headers: Map<String, List<String>>?,
         dataToSend: ByteArray?,
@@ -175,7 +175,7 @@ abstract class Downloader {
      * @see .post
      */
 
-    fun postWithContentType(
+    suspend fun postWithContentType(
         url: String?,
         headers: Map<String, List<String>>?,
         dataToSend: ByteArray?,
@@ -212,7 +212,7 @@ abstract class Downloader {
      */
 
 
-    fun postWithContentTypeJson(
+    suspend fun postWithContentTypeJson(
         url: String?,
         headers: Map<String, List<String>>?,
         dataToSend: ByteArray?,
@@ -227,5 +227,5 @@ abstract class Downloader {
      * @return the result of the request
      */
 
-    abstract fun execute(request: Request): Response
+    abstract suspend fun execute(request: Request): Response
 }

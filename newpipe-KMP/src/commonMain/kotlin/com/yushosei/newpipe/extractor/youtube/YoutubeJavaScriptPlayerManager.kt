@@ -68,8 +68,8 @@ internal object YoutubeJavaScriptPlayerManager {
      * @throws ParsingException if the extraction of the base JavaScript player file or the
      * signature timestamp failed
      */
-    
-    fun getSignatureTimestamp(videoId: String): Int? {
+
+    suspend fun getSignatureTimestamp(videoId: String): Int? {
         // Return the cached result if it is present
         if (cachedSignatureTimestamp != null) {
             return cachedSignatureTimestamp
@@ -120,8 +120,8 @@ internal object YoutubeJavaScriptPlayerManager {
      * @throws ParsingException if the extraction of the base JavaScript player file or the
      * signature deobfuscation function failed
      */
-    
-    fun deobfuscateSignature(
+
+    suspend fun deobfuscateSignature(
         videoId: String,
         obfuscatedSignature: String?
     ): String {
@@ -207,8 +207,8 @@ internal object YoutubeJavaScriptPlayerManager {
      * @throws ParsingException if the extraction of the base JavaScript player file or the
      * throttling parameter deobfuscation function failed
      */
-    
-    fun getUrlWithThrottlingParameterDeobfuscated(
+
+    suspend fun getUrlWithThrottlingParameterDeobfuscated(
         videoId: String,
         streamingUrl: String
     ): String {
@@ -356,7 +356,7 @@ internal object YoutubeJavaScriptPlayerManager {
      * @throws ParsingException if the extraction of the base JavaScript player file failed
      */
     
-    private fun extractJavaScriptCodeIfNeeded(videoId: String) {
+    private suspend fun extractJavaScriptCodeIfNeeded(videoId: String) {
         if (cachedJavaScriptPlayerCode == null) {
             cachedJavaScriptPlayerCode = YoutubeJavaScriptExtractor.extractJavaScriptPlayerCode(
                 videoId

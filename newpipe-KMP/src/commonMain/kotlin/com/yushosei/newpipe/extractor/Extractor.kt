@@ -44,8 +44,8 @@ abstract class Extractor protected constructor(
      * @throws IOException         if the page can not be loaded
      * @throws ExtractionException if the pages content is not understood
      */
-    
-    fun fetchPage() {
+
+    suspend fun fetchPage() {
         if (isPageFetched) {
             return
         }
@@ -64,8 +64,8 @@ abstract class Extractor protected constructor(
      * @throws IOException         if the page can not be loaded
      * @throws ExtractionException if the pages content is not understood
      */
-    
-    abstract fun onFetchPage(downloader: Downloader)
+
+    abstract suspend fun onFetchPage(downloader: Downloader)
 
 
     

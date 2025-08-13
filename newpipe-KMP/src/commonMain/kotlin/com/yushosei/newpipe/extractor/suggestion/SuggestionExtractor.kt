@@ -11,7 +11,7 @@ abstract class SuggestionExtractor(val service: StreamingService) {
     private var forcedContentCountry: ContentCountry? = null
 
     
-    abstract fun suggestionList(query: String): List<String>
+    abstract suspend fun suggestionList(query: String): List<String>
 
     val serviceId: Int
         get() = service.serviceId

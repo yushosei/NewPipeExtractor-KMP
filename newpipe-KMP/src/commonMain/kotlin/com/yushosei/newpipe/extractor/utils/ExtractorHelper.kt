@@ -6,7 +6,7 @@ import com.yushosei.newpipe.extractor.ListExtractor
 import com.yushosei.newpipe.extractor.ListExtractor.InfoItemsPage
 import com.yushosei.newpipe.extractor.ListExtractor.InfoItemsPage.Companion.emptyPage
 
-object ExtractorHelper {
+internal object ExtractorHelper {
     fun <T : InfoItem> getItemsPageOrLogError(
         info: Info, extractor: ListExtractor<T>
     ): InfoItemsPage<T> {

@@ -33,7 +33,7 @@ internal object YoutubeStreamHelper {
     private const val BASE_YT_DESKTOP_WATCH_URL = "https://www.youtube.com/watch?v="
 
     
-    fun getWebMetadataPlayerResponse(
+    suspend fun getWebMetadataPlayerResponse(
         localization: Localization,
         contentCountry: ContentCountry,
         videoId: String
@@ -42,7 +42,7 @@ internal object YoutubeStreamHelper {
             ofWebClient()
         innertubeClientRequestInfo.clientInfo.clientVersion = getClientVersion()!!
 
-        val headers = youTubeHeaders
+        val headers = youTubeHeaders()
 
         // We must always pass a valid visitorData to get valid player responses, which needs to be
         // got from YouTube
@@ -81,8 +81,8 @@ internal object YoutubeStreamHelper {
     }
 
 
-    
-    fun getTvHtml5PlayerResponse(
+
+    suspend fun getTvHtml5PlayerResponse(
         localization: Localization,
         contentCountry: ContentCountry,
         videoId: String,
@@ -139,8 +139,8 @@ internal object YoutubeStreamHelper {
     }
 
 
-    
-    fun getWebFullPlayerResponse(
+
+    suspend fun getWebFullPlayerResponse(
         localization: Localization,
         contentCountry: ContentCountry,
         videoId: String,
@@ -173,15 +173,15 @@ internal object YoutubeStreamHelper {
         return JsonUtils.toJsonObject(
             getValidJsonResponseBody(
                 NewPipe.downloader.postWithContentTypeJson(
-                    url, youTubeHeaders, body, localization
+                    url, youTubeHeaders(), body, localization
                 )
             )
         )
     }
 
 
-    
-    fun getWebEmbeddedPlayerResponse(
+
+    suspend fun getWebEmbeddedPlayerResponse(
         localization: Localization,
         contentCountry: ContentCountry,
         videoId: String,
@@ -240,8 +240,8 @@ internal object YoutubeStreamHelper {
         )
     }
 
-    
-    fun getAndroidPlayerResponse(
+
+    suspend fun getAndroidPlayerResponse(
         contentCountry: ContentCountry,
         localization: Localization,
         videoId: String,
@@ -278,8 +278,8 @@ internal object YoutubeStreamHelper {
         )
     }
 
-    
-    fun getAndroidReelPlayerResponse(
+
+    suspend fun getAndroidReelPlayerResponse(
         contentCountry: ContentCountry,
         localization: Localization,
         videoId: String,
@@ -331,8 +331,8 @@ internal object YoutubeStreamHelper {
             .getObject("playerResponse")
     }
 
-    
-    fun getIosPlayerResponse(
+
+    suspend fun getIosPlayerResponse(
         contentCountry: ContentCountry,
         localization: Localization,
         videoId: String,

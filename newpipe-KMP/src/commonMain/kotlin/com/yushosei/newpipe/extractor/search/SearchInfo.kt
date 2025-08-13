@@ -1,13 +1,11 @@
 package com.yushosei.newpipe.extractor.search
 
-import kotlinx.io.IOException
 import com.yushosei.newpipe.extractor.InfoItem
 import com.yushosei.newpipe.extractor.ListExtractor.InfoItemsPage
 import com.yushosei.newpipe.extractor.ListInfo
 import com.yushosei.newpipe.extractor.MetaInfo
 import com.yushosei.newpipe.extractor.Page
 import com.yushosei.newpipe.extractor.StreamingService
-import com.yushosei.newpipe.extractor.exceptions.ExtractionException
 import com.yushosei.newpipe.extractor.linkhandler.SearchQueryHandler
 import com.yushosei.newpipe.extractor.utils.ExtractorHelper
 
@@ -23,8 +21,8 @@ class SearchInfo(
 
 
     companion object {
-        
-        fun getInfo(
+
+        suspend fun getInfo(
             service: StreamingService,
             searchQuery: SearchQueryHandler
         ): SearchInfo {
@@ -33,7 +31,7 @@ class SearchInfo(
             return getInfo(extractor)
         }
 
-        
+
         fun getInfo(extractor: SearchExtractor): SearchInfo {
             val info = SearchInfo(
                 extractor.serviceId,
@@ -70,8 +68,7 @@ class SearchInfo(
         }
 
 
-        
-        fun getMoreItems(
+        suspend fun getMoreItems(
             service: StreamingService,
             query: SearchQueryHandler,
             page: Page?

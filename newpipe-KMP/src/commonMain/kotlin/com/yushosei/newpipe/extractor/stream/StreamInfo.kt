@@ -89,12 +89,12 @@ class StreamInfo(
 
     companion object {
 
-        fun getInfo(url: String): StreamInfo {
+        suspend fun getInfo(url: String): StreamInfo {
             return getInfo(getServiceByUrl(url), url)
         }
 
 
-        fun getInfo(
+        suspend fun getInfo(
             service: StreamingService,
             url: String
         ): StreamInfo {
@@ -102,7 +102,7 @@ class StreamInfo(
         }
 
 
-        fun getInfo(extractor: StreamExtractor): StreamInfo {
+        suspend fun getInfo(extractor: StreamExtractor): StreamInfo {
             extractor.fetchPage()
             val streamInfo: StreamInfo
             try {
@@ -153,7 +153,7 @@ class StreamInfo(
         }
 
 
-        private fun extractStreams(
+        private suspend fun extractStreams(
             streamInfo: StreamInfo,
             extractor: StreamExtractor
         ) {
@@ -174,7 +174,7 @@ class StreamInfo(
             }
 
             try {
-                streamInfo.audioStreams = extractor.audioStreams
+                streamInfo.audioStreams = extractor.audioStreams()
             } catch (e: ContentNotSupportedException) {
                 throw e
             } catch (e: Exception) {

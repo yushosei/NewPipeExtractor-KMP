@@ -93,6 +93,7 @@ kotlin {
             dependencies {
                 implementation(libs.ktor.client.okhttp)
                 implementation(libs.ktor.client.android)
+                implementation(libs.kotlinx.coroutines.android)
             }
         }
 

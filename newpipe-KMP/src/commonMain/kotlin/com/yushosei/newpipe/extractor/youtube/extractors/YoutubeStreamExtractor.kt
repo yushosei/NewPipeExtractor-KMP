@@ -278,14 +278,15 @@ internal class YoutubeStreamExtractor(service: StreamingService, linkHandler: Li
             )
         }
 
-    override val audioStreams: List<AudioStream>
-        get() {
-            assertPageFetched()
-            return getItags(
-                ADAPTIVE_FORMATS, ItagType.AUDIO,
-                audioStreamBuilderHelper, "audio"
-            )
-        }
+    override suspend fun audioStreams(): List<AudioStream> {
+        assertPageFetched()
+        return getItags(
+            ADAPTIVE_FORMATS,
+            ItagType.AUDIO,
+            audioStreamBuilderHelper,
+            "audio"
+        )
+    }
 
     private fun setStreamType() {
         streamType =
@@ -316,7 +317,7 @@ internal class YoutubeStreamExtractor(service: StreamingService, linkHandler: Li
         }
 
 
-    override fun onFetchPage(downloader: Downloader) {
+    override suspend fun onFetchPage(downloader: Downloader) {
         val videoId = id
 
         val localization = extractorLocalization
@@ -359,7 +360,7 @@ internal class YoutubeStreamExtractor(service: StreamingService, linkHandler: Li
     }
 
 
-    private fun fetchHtml5Client(
+    private suspend fun fetchHtml5Client(
         localization: Localization,
         contentCountry: ContentCountry,
         videoId: String,
@@ -455,7 +456,7 @@ internal class YoutubeStreamExtractor(service: StreamingService, linkHandler: Li
     }
 
 
-    private fun fetchHtml5EmbedClient(
+    private suspend fun fetchHtml5EmbedClient(
         localization: Localization,
         contentCountry: ContentCountry,
         videoId: String,
@@ -490,7 +491,7 @@ internal class YoutubeStreamExtractor(service: StreamingService, linkHandler: Li
         }
     }
 
-    private fun fetchAndroidClient(
+    private suspend fun fetchAndroidClient(
         localization: Localization,
         contentCountry: ContentCountry,
         videoId: String,
@@ -528,7 +529,7 @@ internal class YoutubeStreamExtractor(service: StreamingService, linkHandler: Li
         }
     }
 
-    private fun fetchIosClient(
+    private suspend fun fetchIosClient(
         localization: Localization,
         contentCountry: ContentCountry,
         videoId: String,
@@ -583,7 +584,7 @@ internal class YoutubeStreamExtractor(service: StreamingService, linkHandler: Li
     }
 
 
-    private fun <T : Stream> getItags(
+    private suspend fun <T : Stream> getItags(
         streamingDataKey: String,
         itagTypeWanted: ItagType,
         streamBuilderHelper: (ItagInfo?) -> T,
@@ -686,7 +687,7 @@ internal class YoutubeStreamExtractor(service: StreamingService, linkHandler: Li
      * streams as video-only streams
      * @return a stream builder helper to build [VideoStream]s
      */
-    private fun getStreamsFromStreamingDataKey(
+    private suspend fun getStreamsFromStreamingDataKey(
         videoId: String,
         streamingData: JsonObject?,
         streamingDataKey: String,
@@ -718,7 +719,7 @@ internal class YoutubeStreamExtractor(service: StreamingService, linkHandler: Li
     }
 
 
-    private fun buildAndAddItagInfoToList(
+    private suspend fun buildAndAddItagInfoToList(
         videoId: String,
         formatData: JsonObject,
         itagItem: ItagItem,

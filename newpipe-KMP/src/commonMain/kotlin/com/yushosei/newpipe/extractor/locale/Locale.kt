@@ -19,16 +19,16 @@ class Locale internal constructor(val languageTag: String) {
      */
 
     /** The ISO 639 compliant language code. */
-    val language: String
-        get() = language
+    val language: String = languageTag.substringBefore("-")
 
     /** The ISO 15924 compliant 4-letter script code. */
-    val script: String
-        get() = script
+    val script: String =
+        languageTag.substringAfter("-", "").substringBefore("-").takeIf { it.length == 4 } ?: ""
 
     /** The ISO 3166 compliant region code. */
-    val region: String
-        get() = region
+    val region: String =
+        languageTag.substringAfterLast("-").takeIf { it.length == 2 } ?: ""
+
 
     /**
      * Returns a IETF BCP47 compliant language tag representation of this Locale.

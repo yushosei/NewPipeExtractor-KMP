@@ -24,7 +24,7 @@ abstract class ListExtractor<R : InfoItem>(
      * @see InfoItemsPage.getNextPage
      */
     
-    abstract fun getPage(page: Page?): InfoItemsPage<R>
+    abstract suspend fun getPage(page: Page?): InfoItemsPage<R>
 
 
     override fun getLinkHandler(): ListLinkHandler {

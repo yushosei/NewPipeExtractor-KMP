@@ -71,7 +71,7 @@ class YoutubeSearchExtractor(
     }
 
     
-    override fun onFetchPage(downloader: Downloader) {
+    override suspend fun onFetchPage(downloader: Downloader) {
         val query = super.searchString
         val localization = extractorLocalization
         val params = YoutubeSearchQueryHandlerFactory.getSearchParameter(searchType)
@@ -177,7 +177,7 @@ class YoutubeSearchExtractor(
         }
 
     
-    override fun getPage(page: Page?): InfoItemsPage<InfoItem> {
+    override suspend fun getPage(page: Page?): InfoItemsPage<InfoItem> {
         require(!(page == null || Utils.isNullOrEmpty(page.url))) { "Page doesn't contain an URL" }
 
         val localization = extractorLocalization

@@ -19,10 +19,6 @@
  */
 package com.yushosei.newpipe.extractor.youtube
 
-import io.ktor.http.Url
-import io.ktor.utils.io.charsets.Charsets
-import io.ktor.utils.io.core.toByteArray
-import kotlinx.io.IOException
 import com.yushosei.newpipe.extractor.Image
 import com.yushosei.newpipe.extractor.Image.ResolutionLevel.Companion.fromHeight
 import com.yushosei.newpipe.extractor.NewPipe
@@ -40,13 +36,17 @@ import com.yushosei.newpipe.extractor.utils.Parser.RegexException
 import com.yushosei.newpipe.extractor.utils.ProtoBuilder
 import com.yushosei.newpipe.extractor.utils.RandomStringFromAlphabetGenerator
 import com.yushosei.newpipe.extractor.utils.Utils
-import com.yushosei.newpipe.extractor.youtube.ClientsConstants
 import com.yushosei.newpipe.nanojson.JsonArray
 import com.yushosei.newpipe.nanojson.JsonBuilder
 import com.yushosei.newpipe.nanojson.JsonObject
 import com.yushosei.newpipe.nanojson.JsonParser
 import com.yushosei.newpipe.nanojson.JsonParserException
 import com.yushosei.newpipe.nanojson.JsonWriter
+import io.ktor.http.Url
+import io.ktor.utils.io.charsets.Charsets
+import io.ktor.utils.io.core.toByteArray
+import kotlinx.io.IOException
+import kotlin.coroutines.cancellation.CancellationException
 import kotlin.random.Random
 import kotlin.time.Clock
 import kotlin.time.ExperimentalTime
@@ -127,53 +127,52 @@ internal object YoutubeParsingHelper {
 
     private var clientVersionExtracted = false
 
-    
-    var isHardcodedClientVersionValid: Boolean? = null
-        get() {
-            if (field != null) {
-                return field
-            }
+    private var _isHardcodedClientVersionValid: Boolean? = null
 
-            // JSON payload 구성
-            val body = JsonWriter.string()
-                .`object`()
-                .`object`("context")
-                .`object`("client")
-                .value("hl", "en-GB")
-                .value("gl", "GB")
-                .value("clientName", ClientsConstants.WEB_CLIENT_NAME)
-                .value("clientVersion", ClientsConstants.WEB_HARDCODED_CLIENT_VERSION)
-                .value("platform", ClientsConstants.DESKTOP_CLIENT_PLATFORM)
-                .value("utcOffsetMinutes", 0)
-                .end()
-                .`object`("request")
-                .array("internalExperimentFlags")
-                .end()
-                .value("useSsl", true)
-                .end()
-                .`object`("user")
-                .value("lockedSafetyMode", false)
-                .end()
-                .end()
-                .value("fetchLiveState", true)
-                .end().done().toByteArray(Charsets.UTF_8)
-
-            val headers = getClientHeaders(
-                ClientsConstants.WEB_CLIENT_ID,
-                ClientsConstants.WEB_HARDCODED_CLIENT_VERSION
-            )
-
-            val response = NewPipe.downloader.postWithContentTypeJson(
-                YOUTUBEI_V1_URL + "guide?$DISABLE_PRETTY_PRINT_PARAMETER",
-                headers, body
-            )
-            val responseBody = response.responseBody()
-            val responseCode = response.responseCode()
-
-            field = (responseBody.length > 5000 && responseCode == 200)
-            return field
+    suspend fun isHardcodedClientVersionValid(): Boolean {
+        if (_isHardcodedClientVersionValid != null) {
+            return _isHardcodedClientVersionValid!!
         }
-        private set
+
+        // JSON payload 구성
+        val body = JsonWriter.string()
+            .`object`()
+            .`object`("context")
+            .`object`("client")
+            .value("hl", "en-GB")
+            .value("gl", "GB")
+            .value("clientName", ClientsConstants.WEB_CLIENT_NAME)
+            .value("clientVersion", ClientsConstants.WEB_HARDCODED_CLIENT_VERSION)
+            .value("platform", ClientsConstants.DESKTOP_CLIENT_PLATFORM)
+            .value("utcOffsetMinutes", 0)
+            .end()
+            .`object`("request")
+            .array("internalExperimentFlags")
+            .end()
+            .value("useSsl", true)
+            .end()
+            .`object`("user")
+            .value("lockedSafetyMode", false)
+            .end()
+            .end()
+            .value("fetchLiveState", true)
+            .end().done().toByteArray(Charsets.UTF_8)
+
+        val headers = getClientHeaders(
+            ClientsConstants.WEB_CLIENT_ID,
+            ClientsConstants.WEB_HARDCODED_CLIENT_VERSION
+        )
+
+        val response = NewPipe.downloader.postWithContentTypeJson(
+            YOUTUBEI_V1_URL + "guide?$DISABLE_PRETTY_PRINT_PARAMETER",
+            headers, body
+        )
+        val responseBody = response.responseBody()
+        val responseCode = response.responseCode()
+
+        _isHardcodedClientVersionValid = (responseBody.length > 5000 && responseCode == 200)
+        return _isHardcodedClientVersionValid!!
+    }
 
     private val INNERTUBE_CONTEXT_CLIENT_VERSION_REGEXES = listOf(
         "INNERTUBE_CONTEXT_CLIENT_VERSION\":\"([0-9\\.]+?)\"",
@@ -430,7 +429,7 @@ internal object YoutubeParsingHelper {
      * case for channel or genre mixes)
      */
 
-    
+
     fun extractVideoIdFromMixId(playlistId: String): String {
         if (Utils.isNullOrEmpty(playlistId)) {
             throw ParsingException("Video id could not be determined from empty playlist id")
@@ -469,7 +468,7 @@ internal object YoutubeParsingHelper {
         }
     }
 
-    
+
     private fun getInitialData(html: String): JsonObject {
         try {
             return JsonParser.`object`().from(
@@ -486,8 +485,7 @@ internal object YoutubeParsingHelper {
     }
 
 
-    
-    private fun extractClientVersionFromSwJs() {
+    private suspend fun extractClientVersionFromSwJs() {
         if (clientVersionExtracted) {
             return
         }
@@ -508,8 +506,8 @@ internal object YoutubeParsingHelper {
         clientVersionExtracted = true
     }
 
-    
-    private fun extractClientVersionFromHtmlSearchResultsPage() {
+
+    private suspend fun extractClientVersionFromHtmlSearchResultsPage() {
         // Don't extract the InnerTube client version if it has been already extracted
         if (clientVersionExtracted) {
             return
@@ -582,8 +580,8 @@ internal object YoutubeParsingHelper {
      * Get the client version used by YouTube website on InnerTube requests.
      */
 
-    
-    fun getClientVersion(): String? {
+
+    suspend fun getClientVersion(): String? {
         if (!Utils.isNullOrEmpty(clientVersion)) {
             return clientVersion
         }
@@ -602,7 +600,7 @@ internal object YoutubeParsingHelper {
         }
 
         // Fallback to the hardcoded one if it is valid
-        if (isHardcodedClientVersionValid == true) {
+        if (isHardcodedClientVersionValid()) {
             clientVersion = ClientsConstants.WEB_HARDCODED_CLIENT_VERSION
             return clientVersion
         }
@@ -643,62 +641,65 @@ internal object YoutubeParsingHelper {
         numberGenerator = random
     }
 
-    
-    val isHardcodedYoutubeMusicClientVersionValid: Boolean
-        get() {
-            val url =
-                ("https://music.youtube.com/youtubei/v1/music/get_search_suggestions?"
-                        + DISABLE_PRETTY_PRINT_PARAMETER)
 
-            // @formatter:off
-            val json = JsonWriter.string()
-                .`object`()
-                .`object`("context")
-                .`object`("client")
-                .value("clientName", ClientsConstants.WEB_REMIX_CLIENT_NAME)
-                .value("clientVersion", ClientsConstants.WEB_REMIX_HARDCODED_CLIENT_VERSION)
-                .value("hl", "en-GB")
-                .value("gl", "GB")
-                .value("platform", ClientsConstants.DESKTOP_CLIENT_PLATFORM)
-                .value("utcOffsetMinutes", 0)
-                .end()
-                .`object`("request")
-                .array("internalExperimentFlags")
-                .end()
-                .value("useSsl", true)
-                .end()
-                .`object`("user") // TODO: provide a way to enable restricted mode with:
-                //  .value("enableSafetyMode", boolean)
-                .value("lockedSafetyMode", false)
-                .end()
-                .end()
-                .value("input", "")
-                .end().done().toByteArray(Charsets.UTF_8)
+    private var _isHardcodedYoutubeMusicClientVersionValid: Boolean? = null
 
-            // @formatter:on
-            val headers =
-                HashMap(
-                    getOriginReferrerHeaders(YOUTUBE_MUSIC_URL)
-                )
-            headers.putAll(
+    suspend fun isHardcodedYoutubeMusicClientVersionValid(): Boolean {
+        if (_isHardcodedYoutubeMusicClientVersionValid != null) {
+            return _isHardcodedYoutubeMusicClientVersionValid!!
+        }
+
+        val url =
+            "https://music.youtube.com/youtubei/v1/music/get_search_suggestions?$DISABLE_PRETTY_PRINT_PARAMETER"
+
+        val json = JsonWriter.string()
+            .`object`()
+            .`object`("context")
+            .`object`("client")
+            .value("clientName", ClientsConstants.WEB_REMIX_CLIENT_NAME)
+            .value("clientVersion", ClientsConstants.WEB_REMIX_HARDCODED_CLIENT_VERSION)
+            .value("hl", "en-GB")
+            .value("gl", "GB")
+            .value("platform", ClientsConstants.DESKTOP_CLIENT_PLATFORM)
+            .value("utcOffsetMinutes", 0)
+            .end()
+            .`object`("request")
+            .array("internalExperimentFlags")
+            .end()
+            .value("useSsl", true)
+            .end()
+            .`object`("user")
+            .value("lockedSafetyMode", false)
+            .end()
+            .end()
+            .value("input", "")
+            .end().done().toByteArray(Charsets.UTF_8)
+
+        val headers = HashMap(getOriginReferrerHeaders(YOUTUBE_MUSIC_URL)).apply {
+            putAll(
                 getClientHeaders(
                     ClientsConstants.WEB_REMIX_CLIENT_ID,
                     ClientsConstants.WEB_HARDCODED_CLIENT_VERSION
                 )
             )
-
-            val response =
-                NewPipe.downloader.postWithContentTypeJson(url, headers, json)
-            // Ensure to have a valid response
-            return response.responseBody().length > 500 && response.responseCode() == 200
         }
 
-    @Throws(IOException::class, ReCaptchaException::class, RegexException::class)
-    fun getYoutubeMusicClientVersion(): String {
+        val response = NewPipe.downloader.postWithContentTypeJson(url, headers, json)
+        _isHardcodedYoutubeMusicClientVersionValid =
+            response.responseBody().length > 500 && response.responseCode() == 200
+
+        return _isHardcodedYoutubeMusicClientVersionValid!!
+    }
+
+    @Throws(
+        IOException::class, ReCaptchaException::class, RegexException::class,
+        CancellationException::class
+    )
+    suspend fun getYoutubeMusicClientVersion(): String {
         if (!Utils.isNullOrEmpty(youtubeMusicClientVersion)) {
             return youtubeMusicClientVersion!!
         }
-        if (isHardcodedYoutubeMusicClientVersionValid) {
+        if (isHardcodedYoutubeMusicClientVersionValid()) {
             youtubeMusicClientVersion = ClientsConstants.WEB_REMIX_HARDCODED_CLIENT_VERSION
             return youtubeMusicClientVersion!!
         }
@@ -922,7 +923,6 @@ internal object YoutubeParsingHelper {
     }
 
 
-    
     fun getTextFromObjectOrThrow(textObject: JsonObject, error: String): String {
         val result = getTextFromObject(textObject)
             ?: throw ParsingException("Could not extract text: $error")
@@ -1001,7 +1001,7 @@ internal object YoutubeParsingHelper {
      * [.getImagesFromThumbnailsArray] is executed
      */
 
-    
+
     fun getThumbnailsFromInfoItem(infoItem: JsonObject): List<Image> {
         try {
             return getImagesFromThumbnailsArray(
@@ -1083,15 +1083,13 @@ internal object YoutubeParsingHelper {
         return responseBody
     }
 
-
-    
-    fun getJsonPostResponse(
+    suspend fun getJsonPostResponse(
         endpoint: String,
         body: ByteArray?,
         localization: Localization?
     ): JsonObject {
         val headers =
-            youTubeHeaders
+            youTubeHeaders()
 
         return JsonUtils.toJsonObject(
             getValidJsonResponseBody(
@@ -1103,9 +1101,7 @@ internal object YoutubeParsingHelper {
         )
     }
 
-
-    
-    fun prepareDesktopJsonBuilder(
+    suspend fun prepareDesktopJsonBuilder(
         localization: Localization,
         contentCountry: ContentCountry
     ): JsonBuilder<JsonObject> {
@@ -1206,36 +1202,22 @@ internal object YoutubeParsingHelper {
             return headers
         }
 
-    val youTubeHeaders: Map<String, List<String>>
-        /**
-         * Returns a [Map] containing the required YouTube headers, including the
-         * `CONSENT` cookie to prevent redirects to `consent.youtube.com`
-         */
-        get() {
-            val headers =
-                clientInfoHeaders
-            headers["Cookie"] = listOf(generateConsentCookie())
-            return headers
-        }
+    suspend fun youTubeHeaders(): Map<String, List<String>> {
+        val headers = clientInfoHeaders()
+        headers["Cookie"] = listOf(generateConsentCookie())
+        return headers
+    }
 
-    val clientInfoHeaders: MutableMap<String, List<String>>
-        /**
-         * Returns a [Map] containing the `X-YouTube-Client-Name`,
-         * `X-YouTube-Client-Version`, `Origin`, and `Referer` headers.
-         */
-        get() {
-            val headers =
-                HashMap(
-                    getOriginReferrerHeaders("https://www.youtube.com")
-                )
-            headers.putAll(
-                getClientHeaders(
-                    ClientsConstants.WEB_CLIENT_ID,
-                    getClientVersion()!!
-                )
+    suspend fun clientInfoHeaders(): MutableMap<String, List<String>> {
+        val headers = HashMap(getOriginReferrerHeaders("https://www.youtube.com"))
+        headers.putAll(
+            getClientHeaders(
+                ClientsConstants.WEB_CLIENT_ID,
+                getClientVersion()!! // suspend 가능
             )
-            return headers
-        }
+        )
+        return headers
+    }
 
     /**
      * Returns an unmodifiable [Map] containing the `Origin` and `Referer`
@@ -1469,8 +1451,8 @@ internal object YoutubeParsingHelper {
         }
     }
 
-    
-    fun getVisitorDataFromInnertube(
+
+    suspend fun getVisitorDataFromInnertube(
         innertubeClientRequestInfo: InnertubeClientRequestInfo,
         localization: Localization,
         contentCountry: ContentCountry,
