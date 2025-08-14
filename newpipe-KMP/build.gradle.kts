@@ -9,11 +9,11 @@ plugins {
 }
 
 group = "io.github.yushosei"
-version = "1.0-SNAPSHOT"
+version = "1.0"
 
 mavenPublishing {
-    //publishToMavenCentral(SonatypeHost.CENTRAL_PORTAL)
-    publishToMavenCentral(SonatypeHost.S01)
+    publishToMavenCentral(SonatypeHost.CENTRAL_PORTAL)
+    // publishToMavenCentral(SonatypeHost.S01)
     signAllPublications()
 
     coordinates(group.toString(), "newpipe-extractor-kmp", version.toString())
