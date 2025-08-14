@@ -78,7 +78,7 @@ kotlin {
             implementation(libs.androidx.lifecycle.runtime.compose)
             implementation(libs.kotlinx.serialization.json)
 
-            implementation(projects.newpipeKMP)
+            implementation("com.yushosei:newpipe-extractor-kmp:1.0-SNAPSHOT")
 
             implementation(libs.koin.core)
             implementation(libs.koin.compose)

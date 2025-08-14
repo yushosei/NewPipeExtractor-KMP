@@ -1,16 +1,63 @@
+import com.vanniktech.maven.publish.SonatypeHost
 import org.jetbrains.kotlin.gradle.ExperimentalWasmDsl
 
 plugins {
     alias(libs.plugins.kotlinMultiplatform)
     alias(libs.plugins.androidKotlinMultiplatformLibrary)
     alias(libs.plugins.kotlinx.serialization)
+    id("com.vanniktech.maven.publish") version "0.30.0"
 }
+
+group = "com.yushosei"
+version = "1.0-SNAPSHOT"
+
+mavenPublishing {
+
+    publishToMavenCentral(SonatypeHost.CENTRAL_PORTAL)
+    signAllPublications()
+
+    coordinates(group.toString(), "newpipe-extractor-kmp", version.toString())
+
+    pom {
+        name.set("NewPipeExtractor-KMP")
+        description.set("A Kotlin Multiplatform-compatible library adapted from NewPipeExtractor for extracting YouTube videos and comments in Compose Multiplatform projects.")
+        inceptionYear.set("2025")
+        url.set("https://github.com/yushosei/NewPipeExtractor-KMP")
+
+        licenses {
+            license {
+                name.set("GNU General Public License, Version 3.0")
+                url.set("https://www.gnu.org/licenses/gpl-3.0.en.html")
+                distribution.set("repo")
+            }
+        }
+
+        developers {
+            developer {
+                id.set("yushosei")
+                name.set("Yushosei")
+                email.set("dev.yushosei@gmail.com")
+                url.set("https://github.com/yushosei")
+            }
+        }
+
+        scm {
+            url.set("https://github.com/yushosei/NewPipeExtractor-KMP")
+            connection.set("scm:git:git://github.com/yushosei/NewPipeExtractor-KMP.git")
+            developerConnection.set("scm:git:ssh://git@github.com/yushosei/NewPipeExtractor-KMP.git")
+        }
+    }
+}
+
+
 
 kotlin {
 
 // Target declarations - add or remove as needed below. These define
 // which platforms this KMP module supports.
 // See: https://kotlinlang.org/docs/multiplatform-discover-project.html#targets
+    //explicitApi()
+
     androidLibrary {
         namespace = "com.yushosei.newpipe"
         compileSdk = 35
@@ -30,9 +77,8 @@ kotlin {
 
     @OptIn(ExperimentalWasmDsl::class)
     wasmJs {
-        // 선택적으로 브라우저 설정
         browser {
-            // 웹팩 등 설정 가능
+
         }
     }
 
