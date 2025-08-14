@@ -8,12 +8,12 @@ plugins {
     id("com.vanniktech.maven.publish") version "0.30.0"
 }
 
-group = "com.yushosei"
+group = "io.github.yushosei"
 version = "1.0-SNAPSHOT"
 
 mavenPublishing {
-
-    publishToMavenCentral(SonatypeHost.CENTRAL_PORTAL)
+    //publishToMavenCentral(SonatypeHost.CENTRAL_PORTAL)
+    publishToMavenCentral(SonatypeHost.S01)
     signAllPublications()
 
     coordinates(group.toString(), "newpipe-extractor-kmp", version.toString())
