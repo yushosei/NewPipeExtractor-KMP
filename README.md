@@ -15,6 +15,51 @@ This repository is a Compose Multiplatform-compatible adaptation of the [NewPipe
 
 ---
 
+## 🚀 Usage
+
+### 1. Add Dependency
+
+```kotlin
+implementation("io.github.yushosei:newpipe-extractor-kmp:1.0")
+```
+
+### 2. Initialization
+
+```kotlin
+NewPipe.init(DefaultDownloaderImpl.initDefault())
+```
+
+### 3. Search
+
+```kotlin
+ExtractorHelper.searchFor(
+    SERVICE_ID, searchText, listOf("videos"),
+    "",
+)
+```
+
+### 4. Get More Search Items
+
+```kotlin
+ExtractorHelper.getMoreSearchItems(
+    SERVICE_ID, searchText, listOf("videos"), "", page
+)
+```
+
+### 5. Search Suggestions
+
+```kotlin
+ExtractorHelper.suggestionsFor(SERVICE_ID, searchText)
+```
+
+### 6. Stream Extraction
+
+```kotlin
+ExtractorHelper.getStreamInfo(SERVICE_ID, item.url)
+```
+
+For more details, refer to the sampleApp.
+
 
 
 ## 🎥 Demo Video
