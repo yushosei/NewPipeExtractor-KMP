@@ -80,8 +80,7 @@ https://github.com/user-attachments/assets/35e628ea-50ad-4cba-a970-7e5cb4705823
 
 
 > ✅ This demo showcases **successful audio stream extraction** and **search suggestions retrieval** on both **Android** and **iOS** using Kotlin Multiplatform code.  
-> Although the test focused on audio streams for simplicity, the extractor is also capable of handling **video streams**.
-> 
+> Although the test focused on audio streams for simplicity, the extractor is also capable of handling ~~**video streams**.~~ (TODO)
 > All core logic is written in **pure Kotlin**, making it platform-independent and theoretically usable across **desktop and web environments** too.  
 >  
 > The current implementation has been verified on Android and iOS targets using Compose Multiplatform UI.  
