@@ -9,7 +9,7 @@ plugins {
 }
 
 group = "io.github.yushosei"
-version = "1.0"
+version = "1.2"
 
 mavenPublishing {
     publishToMavenCentral(SonatypeHost.CENTRAL_PORTAL)
