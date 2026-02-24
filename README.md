@@ -20,7 +20,7 @@ This repository is a Compose Multiplatform-compatible adaptation of the [NewPipe
 ### 1. Add Dependency
 
 ```kotlin
-implementation("io.github.yushosei:newpipe-extractor-kmp:1.0")
+implementation("io.github.yushosei:newpipe-extractor-kmp:1.1")
 ```
 
 ### 2. Initialization
