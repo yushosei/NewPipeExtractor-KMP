@@ -28,11 +28,18 @@ val mainModule = module {
     }
 }
 
+data class SearchServiceType(
+    val serviceId: Int,
+    val label: String,
+    val contentFilters: List<String>,
+)
+
 sealed interface SearchAction {
     data class QueryChange(val query: String = "") : SearchAction
     data object Search : SearchAction
     data object LoadMore : SearchAction
     data class LoadData(val item: StreamInfoItem) : SearchAction
+    data class ServiceChange(val service: SearchServiceType) : SearchAction
 }
 
 open class SearchUiState {
@@ -45,6 +52,21 @@ open class SearchUiState {
 class SearchViewModel constructor(
     private val mediaPlayerController: MediaPlayerController,
 ) : ViewModel() {
+    val serviceOptions = listOf(
+        SearchServiceType(
+            serviceId = 0,
+            label = "YouTube",
+            contentFilters = listOf("videos")
+        ),
+        SearchServiceType(
+            serviceId = 1,
+            label = "SoundCloud",
+            contentFilters = listOf("tracks")
+        ),
+    )
+
+    private val _selectedService = MutableStateFlow(serviceOptions.first())
+    val selectedService: StateFlow<SearchServiceType> = _selectedService
 
     private var searchText = ""
     val initialSearchText = searchText
@@ -66,8 +88,6 @@ class SearchViewModel constructor(
 
     private var searchJob: Job = Job()
 
-    private val SERVICE_ID = 0
-
     init {
         viewModelScope.launch {
             pendingActions.collectLatest { action ->
@@ -87,6 +107,10 @@ class SearchViewModel constructor(
                     is SearchAction.LoadData -> {
                         playAudio(action.item)
                     }
+
+                    is SearchAction.ServiceChange -> {
+                        changeService(action.service)
+                    }
                 }
             }
         }
@@ -104,7 +128,7 @@ class SearchViewModel constructor(
     }
 
     private fun playAudio(item: StreamInfoItem) = viewModelScope.launch {
-        ExtractorHelper.getStreamInfo(SERVICE_ID, item.url).let { info ->
+        ExtractorHelper.getStreamInfo(item.serviceId, item.url).let { info ->
             val mediaItem = MediaItem(
                 title = info.name,
                 artist = info.uploaderName,
@@ -132,8 +156,11 @@ class SearchViewModel constructor(
     private fun search() = viewModelScope.launch {
         _uiState.value = SearchUiState.Loading
         try {
+            val service = _selectedService.value
             val searchResult = ExtractorHelper.searchFor(
-                SERVICE_ID, searchText, listOf("videos"),
+                service.serviceId,
+                searchText,
+                service.contentFilters,
                 "",
             )
             nextPage = searchResult.nextPage
@@ -147,8 +174,9 @@ class SearchViewModel constructor(
     private fun loadMore() = viewModelScope.launch {
         nextPage?.let { page ->
             try {
+                val service = _selectedService.value
                 val searchResult = ExtractorHelper.getMoreSearchItems(
-                    SERVICE_ID, searchText, listOf("videos"), "", page
+                    service.serviceId, searchText, service.contentFilters, "", page
                 )
 
                 nextPage = searchResult.nextPage
@@ -166,14 +194,34 @@ class SearchViewModel constructor(
 
     private fun loadSuggestions() = viewModelScope.launch {
         try {
+            val serviceId = _selectedService.value.serviceId
             val apiSuggestions = withContext(Dispatchers.Main) {
-                ExtractorHelper.suggestionsFor(0, searchText)
+                ExtractorHelper.suggestionsFor(serviceId, searchText)
             }.map { suggestion ->
                 suggestion
             }
             _suggestions.value = apiSuggestions
         } catch (e: Exception) {
         }
+    }
+
+    private fun changeService(service: SearchServiceType) = viewModelScope.launch {
+        if (_selectedService.value.serviceId == service.serviceId) {
+            return@launch
+        }
+
+        _selectedService.value = service
+        nextPage = null
+        _result.value = emptyList()
+
+        if (searchText.isBlank()) {
+            _uiState.value = SearchUiState.Empty
+            _suggestions.value = emptyList()
+            return@launch
+        }
+
+        updateSuggestions(searchText)
+        search()
     }
 
     fun handleAction(action: SearchAction) = viewModelScope.launch {

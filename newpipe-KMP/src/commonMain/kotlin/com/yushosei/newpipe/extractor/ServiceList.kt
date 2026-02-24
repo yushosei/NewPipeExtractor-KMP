@@ -1,6 +1,7 @@
 package com.yushosei.newpipe.extractor
 
 import com.yushosei.newpipe.extractor.youtube.YoutubeService
+import com.yushosei.newpipe.extractor.soundcloud.SoundcloudService
 
 /*
 * Copyright (C) 2018 Christian Schabesberger <chris.schabesberger@mailbox.org>
@@ -25,13 +26,15 @@ import com.yushosei.newpipe.extractor.youtube.YoutubeService
 // keep unusual names and inner assignments
 object ServiceList {
     val YouTube: YoutubeService = YoutubeService(0)
+    val SoundCloud: SoundcloudService = SoundcloudService(1)
 
     /**
      * When creating a new service, put this service in the end of this list,
      * and give it the next free id.
      */
     private val SERVICES: List<StreamingService> = listOf(
-        YouTube
+        YouTube,
+        SoundCloud
     )
 
     /**

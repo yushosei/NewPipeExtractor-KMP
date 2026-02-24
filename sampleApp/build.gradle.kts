@@ -63,6 +63,7 @@ kotlin {
             implementation(libs.androidx.activity.compose)
 
             implementation(libs.androidx.media3.exoplayer)
+            implementation(libs.androidx.media3.exoplayer.hls)
             implementation(libs.androidx.media3.session)
             implementation(libs.androidx.media3.ui)
         }
@@ -78,8 +79,8 @@ kotlin {
             implementation(libs.androidx.lifecycle.runtime.compose)
             implementation(libs.kotlinx.serialization.json)
 
-            //implementation(project(":newpipe-KMP"))
-            implementation("io.github.yushosei:newpipe-extractor-kmp:1.1")
+            implementation(project(":newpipe-KMP"))
+            // implementation("io.github.yushosei:newpipe-extractor-kmp:1.1")
 
             implementation(libs.koin.core)
             implementation(libs.koin.compose)

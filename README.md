@@ -1,6 +1,6 @@
 # NewPipeExtractor-KMP
 
-This repository is a Compose Multiplatform-compatible adaptation of the [NewPipeExtractor](https://github.com/TeamNewPipe/NewPipeExtractor), forked from version `v0.24.5`. It is intended for extracting YouTube videos and comments within Kotlin Multiplatform projects.
+This repository is a Compose Multiplatform-compatible adaptation of the [NewPipeExtractor](https://github.com/TeamNewPipe/NewPipeExtractor), forked from version `v0.24.5`. It is intended for extracting YouTube and SoundCloud content within Kotlin Multiplatform projects.
 
 ---
 
@@ -11,6 +11,7 @@ This repository is a Compose Multiplatform-compatible adaptation of the [NewPipe
 - Internal modules have been refactored and improved for better readability, structure, and platform compatibility.
 - Replaced `nanojson` with a **pure Kotlin implementation**.
 - **Public APIs and function call patterns remain unchanged** to ensure compatibility with the original usage.
+- ✅ **Audio stream extraction supports both YouTube and SoundCloud**.
 - This project aims to serve as a foundation for integrating content extraction logic into Compose Multiplatform applications.
 
 ---
@@ -130,7 +131,7 @@ This project includes a reimplementation of `nanojson` in **pure Kotlin**, rewri
 - [x] Search functionality migrated to Kotlin
 - [x] Search suggestion handling migrated to Kotlin
 - [x] Stream extraction (YouTube video info) migrated to Kotlin
-- [x] Audio stream extraction migrated to Kotlin
+- [x] Audio stream extraction (YouTube, SoundCloud) migrated to Kotlin
 - [ ] Code cleanup and module publishing pending
 
 ---

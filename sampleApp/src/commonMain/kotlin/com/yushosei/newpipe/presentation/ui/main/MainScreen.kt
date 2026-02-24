@@ -21,11 +21,15 @@ import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Divider
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -77,6 +81,7 @@ fun MainScreen(
     val suggestions by viewModel.suggestions.collectAsState()
     val result by viewModel.result.collectAsState()
     val uiState by viewModel.uiState.collectAsState()
+    val selectedService by viewModel.selectedService.collectAsState()
 
     val endOfListReached by remember {
         derivedStateOf {
@@ -136,6 +141,11 @@ fun MainScreen(
                 onQueryChange = { viewModel.handleAction(SearchAction.QueryChange(it)) },
                 onSearch = { viewModel.handleAction(SearchAction.Search) },
                 suggestions = suggestions,
+                selectedService = selectedService,
+                serviceOptions = viewModel.serviceOptions,
+                onServiceSelected = {
+                    viewModel.handleAction(SearchAction.ServiceChange(it))
+                },
             )
         }
     }
@@ -222,6 +232,9 @@ private fun SearchAppBar(
     modifier: Modifier = Modifier,
     onQueryChange: (String) -> Unit,
     onSearch: () -> Unit,
+    selectedService: SearchServiceType,
+    serviceOptions: List<SearchServiceType>,
+    onServiceSelected: (SearchServiceType) -> Unit,
     initialQuery: String = "",
     onRemoveHistory: (String) -> Unit = {},
     suggestions: List<String> = emptyList(),
@@ -256,20 +269,33 @@ private fun SearchAppBar(
             verticalArrangement = Arrangement.spacedBy(4.dp)
         ) {
             var query by rememberSaveable { mutableStateOf(initialQuery) }
-            SearchTextField(
-                autoFocus = query.isEmpty(),
-                value = query,
-                onValueChange = { value ->
-                    query = value
-                    onQueryChange(value)
-                },
-                onSearch = { triggerSearch() },
+            Row(
                 modifier = Modifier
-                    .padding(horizontal = 8.dp)
-                    .onFocusChanged {
-                        focused = it.isFocused
-                    }
-            )
+                    .fillMaxWidth()
+                    .padding(horizontal = 8.dp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                SearchTextField(
+                    autoFocus = query.isEmpty(),
+                    value = query,
+                    onValueChange = { value ->
+                        query = value
+                        onQueryChange(value)
+                    },
+                    onSearch = { triggerSearch() },
+                    modifier = Modifier
+                        .weight(1f)
+                        .onFocusChanged {
+                            focused = it.isFocused
+                        }
+                )
+                ServiceTypeSelector(
+                    selectedService = selectedService,
+                    serviceOptions = serviceOptions,
+                    onServiceSelected = onServiceSelected
+                )
+            }
             if (searchActive && suggestions.isNotEmpty()) {
                 LazyColumn(
                     modifier = Modifier
@@ -291,6 +317,41 @@ private fun SearchAppBar(
                         )
                     }
                 }
+            }
+        }
+    }
+}
+
+@Composable
+private fun ServiceTypeSelector(
+    selectedService: SearchServiceType,
+    serviceOptions: List<SearchServiceType>,
+    onServiceSelected: (SearchServiceType) -> Unit,
+) {
+    var expanded by remember { mutableStateOf(false) }
+
+    Box(modifier = Modifier.wrapContentSize()) {
+        OutlinedButton(
+            onClick = { expanded = true }
+        ) {
+            Text(text = selectedService.label, maxLines = 1)
+            Icon(
+                imageVector = Icons.Default.ArrowDropDown,
+                contentDescription = "Select Service"
+            )
+        }
+        DropdownMenu(
+            expanded = expanded,
+            onDismissRequest = { expanded = false }
+        ) {
+            serviceOptions.forEach { option ->
+                DropdownMenuItem(
+                    text = { Text(option.label) },
+                    onClick = {
+                        expanded = false
+                        onServiceSelected(option)
+                    }
+                )
             }
         }
     }
