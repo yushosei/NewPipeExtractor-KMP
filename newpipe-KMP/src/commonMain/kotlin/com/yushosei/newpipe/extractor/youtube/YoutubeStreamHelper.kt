@@ -309,10 +309,9 @@ internal object YoutubeStreamHelper {
             innertubeClientRequestInfo, null
         )
 
-        addVideoIdCpnAndOkChecks(builder, videoId, cpn)
-
         builder.`object`("playerRequest")
-            .value(YoutubeParsingHelper.VIDEO_ID, videoId)
+        addVideoIdCpnAndOkChecks(builder, videoId, cpn)
+        builder
             .end()
             .value("disablePlayerResponse", false)
 

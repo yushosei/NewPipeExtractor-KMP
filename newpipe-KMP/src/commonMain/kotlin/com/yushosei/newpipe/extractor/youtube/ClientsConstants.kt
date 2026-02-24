@@ -15,12 +15,12 @@ internal object ClientsConstants {
      * The client version for InnerTube requests with the `WEB` client, used as the last
      * fallback if the extraction of the real one failed.
      */
-    const val WEB_HARDCODED_CLIENT_VERSION: String = "2.20250122.04.00"
+    const val WEB_HARDCODED_CLIENT_VERSION: String = "2.20260120.01.00"
 
     // WEB_REMIX (YouTube Music) client fields
     const val WEB_REMIX_CLIENT_ID: String = "67"
     const val WEB_REMIX_CLIENT_NAME: String = "WEB_REMIX"
-    const val WEB_REMIX_HARDCODED_CLIENT_VERSION: String = "1.20250122.01.00"
+    const val WEB_REMIX_HARDCODED_CLIENT_VERSION: String = "1.20260121.03.00"
 
     // TVHTML5 (YouTube on TVs and consoles using HTML5) client fields
     const val TVHTML5_CLIENT_ID: String = "7"
@@ -38,7 +38,7 @@ internal object ClientsConstants {
     // WEB_EMBEDDED_PLAYER (YouTube embeds)
     const val WEB_EMBEDDED_CLIENT_ID: String = "56"
     const val WEB_EMBEDDED_CLIENT_NAME: String = "WEB_EMBEDDED_PLAYER"
-    const val WEB_EMBEDDED_CLIENT_VERSION: String = "1.20250121.00.00"
+    const val WEB_EMBEDDED_CLIENT_VERSION: String = "1.20260122.01.00"
 
     // IOS (iOS YouTube app) client fields
     const val IOS_CLIENT_ID: String = "5"
@@ -54,7 +54,7 @@ internal object ClientsConstants {
  * Store page of the YouTube app](https://apps.apple.com/us/app/youtube-watch-listen-stream/id544007664/), in the `What’s New` section.
      *
      */
-    const val IOS_CLIENT_VERSION: String = "20.03.02"
+    const val IOS_CLIENT_VERSION: String = "21.03.2"
 
     /**
      * The device machine id for the iPhone 15 Pro Max, used to get 60fps with the `iOS`
@@ -84,7 +84,7 @@ internal object ClientsConstants {
      *
      * @see .IOS_USER_AGENT_VERSION
      */
-    const val IOS_OS_VERSION: String = "18.2.1.22C161"
+    const val IOS_OS_VERSION: String = "18.7.2.22H124"
 
     /**
      * The iOS version to be used in the HTTP user agent for requests.
@@ -96,7 +96,7 @@ internal object ClientsConstants {
      *
      * @see .IOS_OS_VERSION
      */
-    const val IOS_USER_AGENT_VERSION: String = "18_2_1"
+    const val IOS_USER_AGENT_VERSION: String = "18_7_2"
 
     // ANDROID (Android YouTube app) client fields
     const val ANDROID_CLIENT_ID: String = "3"
@@ -112,5 +112,5 @@ internal object ClientsConstants {
      * such as [APKMirror](https://www.apkmirror.com/apk/google-inc/youtube/).
      *
      */
-    const val ANDROID_CLIENT_VERSION: String = "19.28.35"
+    const val ANDROID_CLIENT_VERSION: String = "21.03.36"
 }

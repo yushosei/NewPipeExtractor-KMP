@@ -179,11 +179,12 @@ internal class YoutubeStreamExtractor(service: StreamingService, linkHandler: Li
                     .getString("lengthSeconds")
                 return duration!!.toLong()
             } catch (e: Exception) {
-                return getDurationFromFirstAdaptiveFormat(
-                    listOf(
-                        html5StreamingData!!, androidStreamingData!!, iosStreamingData!!
-                    )
-                ).toLong()
+                val fallbackStreamingData = listOfNotNull(
+                    androidStreamingData,
+                    iosStreamingData,
+                    html5StreamingData
+                )
+                return getDurationFromFirstAdaptiveFormat(fallbackStreamingData).toLong()
             }
         }
 
@@ -318,20 +319,13 @@ internal class YoutubeStreamExtractor(service: StreamingService, linkHandler: Li
 
 
     override suspend fun onFetchPage(downloader: Downloader) {
-        val videoId = id
+        val videoId = id ?: throw ParsingException("Video ID is null")
 
         val localization = extractorLocalization
         val contentCountry = extractorContentCountry
 
         val poTokenproviderInstance = poTokenProvider
         val noPoTokenProviderSet = poTokenproviderInstance == null
-
-        fetchHtml5Client(
-            localization, contentCountry, videoId!!, poTokenproviderInstance,
-            noPoTokenProviderSet
-        )
-
-        setStreamType()
 
         val androidPoTokenResult = if (noPoTokenProviderSet)
             null
@@ -340,6 +334,8 @@ internal class YoutubeStreamExtractor(service: StreamingService, linkHandler: Li
 
         fetchAndroidClient(localization, contentCountry, videoId, androidPoTokenResult)
 
+        setStreamType()
+
         if (fetchIosClient) {
             val iosPoTokenResult = if (noPoTokenProviderSet)
                 null
@@ -347,6 +343,8 @@ internal class YoutubeStreamExtractor(service: StreamingService, linkHandler: Li
                 poTokenproviderInstance?.getIosClientPoToken(videoId)
             fetchIosClient(localization, contentCountry, videoId, iosPoTokenResult)
         }
+
+        fetchWebClientMetadata(localization, contentCountry, videoId)
 
         val nextBody = JsonWriter.string(
             prepareDesktopJsonBuilder(localization, contentCountry)
@@ -497,35 +495,29 @@ internal class YoutubeStreamExtractor(service: StreamingService, linkHandler: Li
         videoId: String,
         androidPoTokenResult: PoTokenResult?
     ) {
-        try {
-            androidCpn = generateContentPlaybackNonce()
-            val androidPlayerResponse = if (androidPoTokenResult == null) {
-                YoutubeStreamHelper.getAndroidReelPlayerResponse(
-                    contentCountry, localization, videoId, androidCpn
-                )
-            } else {
-                YoutubeStreamHelper.getAndroidPlayerResponse(
-                    contentCountry, localization, videoId, androidCpn,
-                    androidPoTokenResult
-                )
-            }
+        androidCpn = generateContentPlaybackNonce()
+        playerResponse = if (androidPoTokenResult == null) {
+            YoutubeStreamHelper.getAndroidReelPlayerResponse(
+                contentCountry, localization, videoId, androidCpn
+            )
+        } else {
+            YoutubeStreamHelper.getAndroidPlayerResponse(
+                contentCountry, localization, videoId, androidCpn,
+                androidPoTokenResult
+            )
+        }
 
-            if (!isPlayerResponseNotValid(androidPlayerResponse, videoId)) {
-                androidStreamingData = androidPlayerResponse.getObject(STREAMING_DATA)
+        checkPlayabilityStatus(playerResponse!!.getObject(PLAYABILITY_STATUS))
+        if (isPlayerResponseNotValid(playerResponse!!, videoId)) {
+            throw ExtractionException("ANDROID player response is not valid")
+        }
 
-                if (Utils.isNullOrEmpty(playerCaptionsTracklistRenderer)) {
-                    playerCaptionsTracklistRenderer =
-                        androidPlayerResponse.getObject(CAPTIONS)
-                            .getObject(PLAYER_CAPTIONS_TRACKLIST_RENDERER)
-                }
+        androidStreamingData = playerResponse!!.getObject(STREAMING_DATA)
+        playerCaptionsTracklistRenderer = playerResponse!!.getObject(CAPTIONS)
+            .getObject(PLAYER_CAPTIONS_TRACKLIST_RENDERER)
 
-                if (androidPoTokenResult != null) {
-                    androidStreamingUrlsPoToken = androidPoTokenResult.streamingDataPoToken
-                }
-            }
-        } catch (ignored: Exception) {
-            // Ignore exceptions related to ANDROID client fetch or parsing, as it is not
-            // compulsory to play contents
+        if (androidPoTokenResult != null) {
+            androidStreamingUrlsPoToken = androidPoTokenResult.streamingDataPoToken
         }
     }
 
@@ -557,6 +549,29 @@ internal class YoutubeStreamExtractor(service: StreamingService, linkHandler: Li
         } catch (ignored: Exception) {
             // Ignore exceptions related to IOS client fetch or parsing, as it is not
             // compulsory to play contents
+        }
+    }
+
+    private suspend fun fetchWebClientMetadata(
+        localization: Localization,
+        contentCountry: ContentCountry,
+        videoId: String
+    ) {
+        try {
+            val webPlayerResponse = YoutubeStreamHelper.getWebMetadataPlayerResponse(
+                localization, contentCountry, videoId
+            )
+
+            if (!isPlayerResponseNotValid(webPlayerResponse, videoId)) {
+                playerMicroFormatRenderer = webPlayerResponse.getObject("microformat")
+                    .getObject("playerMicroformatRenderer")
+            }
+        } catch (_: Exception) {
+            // Metadata from WEB client is optional for stream extraction.
+        }
+
+        if (playerMicroFormatRenderer == null) {
+            playerMicroFormatRenderer = JsonObject()
         }
     }
 

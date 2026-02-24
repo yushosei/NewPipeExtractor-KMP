@@ -49,7 +49,7 @@ internal class InnertubeClientRequestInfo private constructor(
             return InnertubeClientRequestInfo(
                 ClientInfo(
                     ClientsConstants.WEB_EMBEDDED_CLIENT_NAME,
-                    ClientsConstants.WEB_REMIX_HARDCODED_CLIENT_VERSION,
+                    ClientsConstants.WEB_EMBEDDED_CLIENT_VERSION,
                     ClientsConstants.EMBED_CLIENT_SCREEN,
                     ClientsConstants.WEB_EMBEDDED_CLIENT_ID,
                     null
@@ -96,7 +96,7 @@ internal class InnertubeClientRequestInfo private constructor(
                 ),
                 DeviceInfo(
                     ClientsConstants.MOBILE_CLIENT_PLATFORM, null, null,
-                    "Android", "15", 35
+                    "Android", "16", 36
                 )
             )
         }

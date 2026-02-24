@@ -17,6 +17,7 @@ object ExtractorHelper {
     private val CACHE by lazy { InfoCache.instance }
     private val loadingUrls = mutableSetOf<String>()
     private val loadingLock = Mutex()
+    private val extractionDispatcher = Dispatchers.Default
 
     private fun checkServiceId(serviceId: Int) {
         require(serviceId != NO_SERVICE_ID) { "serviceId is NO_SERVICE_ID" }
@@ -26,7 +27,7 @@ object ExtractorHelper {
         serviceId: Int, searchString: String,
         contentFilter: List<String>,
         sortFilter: String
-    ): SearchInfo = withContext(Dispatchers.Main) {
+    ): SearchInfo = withContext(extractionDispatcher) {
         checkServiceId(serviceId)
         val service = NewPipe.getService(serviceId)
         return@withContext SearchInfo.getInfo(
@@ -56,7 +57,7 @@ object ExtractorHelper {
     }
 
     suspend fun suggestionsFor(serviceId: Int, query: String): List<String> =
-        withContext(Dispatchers.Main) {
+        withContext(extractionDispatcher) {
             checkServiceId(serviceId)
             val extractor: SuggestionExtractor = NewPipe.getService(serviceId).suggestionExtractor
             return@withContext extractor.suggestionList(query)
@@ -70,7 +71,7 @@ object ExtractorHelper {
         serviceId: Int,
         url: String,
         forceLoad: Boolean = false
-    ): StreamInfo = withContext(Dispatchers.Main) {
+    ): StreamInfo = withContext(extractionDispatcher) {
         checkServiceId(serviceId)
         loadingLock.withLock { loadingUrls.add(url) }
 
