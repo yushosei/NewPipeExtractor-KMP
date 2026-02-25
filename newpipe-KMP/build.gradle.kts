@@ -9,7 +9,7 @@ plugins {
 }
 
 group = "io.github.yushosei"
-version = "1.2"
+version = "1.2.1"
 
 mavenPublishing {
     publishToMavenCentral(SonatypeHost.CENTRAL_PORTAL)
@@ -128,7 +128,6 @@ kotlin {
                 implementation(libs.kotlinx.io.core)
 
                 implementation(libs.ktor.core)
-                implementation(libs.kotlinx.datetime)
                 implementation(libs.ktor.serialization.kotlinx.json)
                 implementation(libs.ktor.client.content.negotiation)
             }

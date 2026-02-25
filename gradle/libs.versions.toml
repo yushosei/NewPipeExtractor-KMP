@@ -21,7 +21,6 @@ kotlinxIoCore = "0.7.0"
 ktor = "3.1.1"
 runner = "1.5.2"
 core = "1.6.1"
-kotlinx-datetime = "0.6.2"
 composeHotReload = "1.0.0-alpha11"
 koin = "4.1.0-Beta7"
 coil = "3.0.4"
@@ -50,7 +49,6 @@ androidx-lifecycle-runtime-compose = { group = "org.jetbrains.androidx.lifecycle
 kotlin-stdlib = { group = "org.jetbrains.kotlin", name = "kotlin-stdlib", version.ref = "kotlinStdlib" }
 androidx-runner = { group = "androidx.test", name = "runner", version.ref = "runner" }
 androidx-core = { group = "androidx.test", name = "core", version.ref = "core" }
-kotlinx-datetime = { module = "org.jetbrains.kotlinx:kotlinx-datetime", version.ref = "kotlinx-datetime" }
 kotlin-gradlePlugin = { module = "org.jetbrains.kotlin:kotlin-gradle-plugin", version.ref = "kotlin" }
 
 # Media3

@@ -2,7 +2,8 @@ package com.yushosei.newpipe.util
 
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
-import kotlinx.datetime.Clock
+import kotlin.time.Clock
+import kotlin.time.ExperimentalTime
 import com.yushosei.newpipe.extractor.Info
 import com.yushosei.newpipe.extractor.InfoItem
 
@@ -98,6 +99,7 @@ class InfoCache private constructor() {
         cache.size().toLong()
     }
 
+    @OptIn(ExperimentalTime::class)
     private class CacheData(val info: Info, timeoutMillis: Long) {
         private val expireTimestamp: Long =
             Clock.System.now().toEpochMilliseconds() + timeoutMillis

@@ -80,7 +80,7 @@ kotlin {
             implementation(libs.kotlinx.serialization.json)
 
             //implementation(project(":newpipe-KMP"))
-            implementation("io.github.yushosei:newpipe-extractor-kmp:1.2")
+            implementation("io.github.yushosei:newpipe-extractor-kmp:1.2.1")
 
             implementation(libs.koin.core)
             implementation(libs.koin.compose)
