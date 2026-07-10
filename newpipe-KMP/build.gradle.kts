@@ -1,4 +1,5 @@
 import com.vanniktech.maven.publish.SonatypeHost
+import org.gradle.api.tasks.testing.Test
 import org.jetbrains.kotlin.gradle.ExperimentalWasmDsl
 
 plugins {
@@ -9,7 +10,14 @@ plugins {
 }
 
 group = "io.github.yushosei"
-version = "1.2.1"
+version = "1.3.0"
+
+tasks.withType<Test>().configureEach {
+    systemProperty(
+        "newpipe.liveTests",
+        providers.systemProperty("newpipe.liveTests").orElse("false").get()
+    )
+}
 
 mavenPublishing {
     publishToMavenCentral(SonatypeHost.CENTRAL_PORTAL)

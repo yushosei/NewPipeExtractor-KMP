@@ -1174,6 +1174,15 @@ internal object YoutubeParsingHelper {
                 + ")")
     }
 
+    fun getVisionOsUserAgent(localization: Localization?): String {
+        return ("com.google.visionos.youtube/" + ClientsConstants.VISIONOS_CLIENT_VERSION
+                + "(" + ClientsConstants.VISIONOS_DEVICE_MODEL
+                + "; U; CPU visionOS " + ClientsConstants.VISIONOS_USER_AGENT_VERSION
+                + " like Mac OS X; "
+                + (localization ?: Localization.DEFAULT).countryCode
+                + ")")
+    }
+
 
     val tvHtml5UserAgent: String
         /**

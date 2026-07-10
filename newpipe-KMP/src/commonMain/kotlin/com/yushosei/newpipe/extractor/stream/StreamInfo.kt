@@ -70,6 +70,8 @@ class StreamInfo(
     var uploaderUrl: String = ""
 
     var audioStreams: List<AudioStream> = listOf()
+    var videoStreams: List<VideoStream> = listOf()
+    var videoOnlyStreams: List<VideoStream> = listOf()
 
     var dashMpdUrl: String = ""
     var hlsUrl: String = ""
@@ -179,6 +181,28 @@ class StreamInfo(
                 throw e
             } catch (e: Exception) {
                 streamInfo.addError(ExtractionException("Couldn't get audio streams", e))
+            }
+
+            try {
+                streamInfo.videoStreams = extractor.videoStreams()
+            } catch (e: Exception) {
+                streamInfo.addError(ExtractionException("Couldn't get video streams", e))
+            }
+
+            try {
+                streamInfo.videoOnlyStreams = extractor.videoOnlyStreams()
+            } catch (e: Exception) {
+                streamInfo.addError(ExtractionException("Couldn't get video only streams", e))
+            }
+
+            if (streamInfo.audioStreams.isEmpty()
+                && streamInfo.videoStreams.isEmpty()
+                && streamInfo.dashMpdUrl.isEmpty()
+                && streamInfo.hlsUrl.isEmpty()
+            ) {
+                throw StreamExtractException(
+                    "Could not get any stream. See error variable to get further details."
+                )
             }
         }
 

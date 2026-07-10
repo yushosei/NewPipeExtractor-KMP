@@ -77,6 +77,16 @@ abstract class StreamExtractor(service: StreamingService, linkHandler: LinkHandl
 
     abstract suspend fun audioStreams(): List<AudioStream>
 
+    /**
+     * Return video streams that already contain an audio track.
+     */
+    abstract suspend fun videoStreams(): List<VideoStream>
+
+    /**
+     * Return adaptive video-only streams. Consumers must pair these with an audio stream.
+     */
+    abstract suspend fun videoOnlyStreams(): List<VideoStream>
+
     abstract val streamType: StreamType
 
     open val errorMessage: String?

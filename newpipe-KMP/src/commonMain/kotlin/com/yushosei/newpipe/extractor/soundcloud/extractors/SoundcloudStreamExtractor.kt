@@ -16,6 +16,7 @@ import com.yushosei.newpipe.extractor.stream.Description
 import com.yushosei.newpipe.extractor.stream.Stream
 import com.yushosei.newpipe.extractor.stream.StreamExtractor
 import com.yushosei.newpipe.extractor.stream.StreamType
+import com.yushosei.newpipe.extractor.stream.VideoStream
 import com.yushosei.newpipe.extractor.utils.Utils
 import com.yushosei.newpipe.nanojson.JsonArray
 import com.yushosei.newpipe.nanojson.JsonObject
@@ -28,6 +29,13 @@ class SoundcloudStreamExtractor(
 ) : StreamExtractor(service, linkHandler) {
     private var track: JsonObject? = null
     private var isAvailable: Boolean = true
+
+    private data class TranscodingContext(
+        val preset: String,
+        val protocol: String,
+        val endpointUrl: String,
+        val mimeType: String
+    )
 
     override suspend fun onFetchPage(downloader: Downloader) {
         val resolvedUrl = SoundcloudParsingHelper.normalizeTrackUrl(url ?: originalUrl)
@@ -109,6 +117,10 @@ class SoundcloudStreamExtractor(
         return extractAudioStreams(transcodings)
     }
 
+    override suspend fun videoStreams(): List<VideoStream> = emptyList()
+
+    override suspend fun videoOnlyStreams(): List<VideoStream> = emptyList()
+
     override val dashMpdUrl: String
         get() = ""
 
@@ -159,81 +171,234 @@ class SoundcloudStreamExtractor(
 
     private suspend fun extractAudioStreams(transcodings: JsonArray): List<AudioStream> {
         val audioStreams = mutableListOf<AudioStream>()
+        val seenTranscodings = mutableListOf<String>()
+        var firstFailure: ExtractionException? = null
 
         for (entry in transcodings) {
             val transcoding = entry as? JsonObject ?: continue
 
             val endpointUrl = transcoding.getString("url", "")
+            val preset = transcoding.getString("preset", Stream.ID_UNKNOWN)
+            val formatObject = transcoding.getObject("format")
+            val protocol = formatObject.getString("protocol", "")
+            val mimeType = formatObject.getString("mime_type", "")
+            val context = TranscodingContext(
+                preset = if (preset.isEmpty()) Stream.ID_UNKNOWN else preset,
+                protocol = protocol,
+                endpointUrl = endpointUrl,
+                mimeType = mimeType
+            )
+            seenTranscodings.add(
+                "preset=${context.preset}, protocol=${context.protocol.ifEmpty { "unknown" }}, " +
+                        "endpoint=${context.endpointUrl.ifEmpty { "<missing>" }}"
+            )
+
             if (endpointUrl.isEmpty()) {
+                if (firstFailure == null) {
+                    firstFailure = ExtractionException(
+                        "SoundCloud transcoding is missing an endpoint URL: " +
+                                transcodingContextLabel(context)
+                    )
+                }
                 continue
             }
 
-            val preset = transcoding.getString("preset", Stream.ID_UNKNOWN)
-            val protocol = transcoding.getObject("format").getString("protocol", "")
             if (protocol.contains("encrypted", ignoreCase = true)) {
                 continue
             }
 
             try {
-                val streamUrl = getTranscodingUrl(endpointUrl)
+                val streamUrl = getTranscodingUrl(context)
                 val builder = AudioStream.Builder()
-                    .setId(if (preset.isEmpty()) Stream.ID_UNKNOWN else preset)
+                    .setId(context.preset)
                     .setContent(streamUrl, true)
 
                 if (protocol == "hls") {
                     builder.setDeliveryMethod(DeliveryMethod.HLS)
                 }
 
-                when {
-                    preset.contains("mp3") -> {
-                        builder.setMediaFormat(MediaFormat.MP3)
-                        builder.setAverageBitrate(128)
-                    }
-
-                    preset.contains("opus") -> {
-                        builder.setMediaFormat(MediaFormat.OPUS)
-                        builder.setAverageBitrate(64)
-                    }
-
-                    preset.contains("aac_160k") -> {
-                        builder.setMediaFormat(MediaFormat.M4A)
-                        builder.setAverageBitrate(160)
-                    }
-
-                    else -> continue
+                if (!applyFormatMetadata(builder, context)) {
+                    continue
                 }
 
                 val audioStream = builder.build()
                 if (!Stream.containSimilarStream(audioStream, audioStreams)) {
                     audioStreams.add(audioStream)
                 }
-            } catch (_: Exception) {
-                // Skip malformed transcodings and continue with the next one.
+            } catch (e: ExtractionException) {
+                if (firstFailure == null) {
+                    firstFailure = e
+                }
+            } catch (e: Exception) {
+                if (firstFailure == null) {
+                    firstFailure = ExtractionException(
+                        "Unexpected SoundCloud transcoding failure: ${transcodingContextLabel(context)}",
+                        e
+                    )
+                }
             }
+        }
+
+        if (audioStreams.isEmpty()) {
+            val summary = buildString {
+                append("SoundCloud returned ")
+                append(transcodings.size)
+                append(" transcodings but no audio stream survived. Seen: ")
+                append(seenTranscodings.joinToString(" | "))
+            }
+            if (firstFailure != null) {
+                throw ExtractionException("$summary. First failure: ${firstFailure.message}", firstFailure)
+            }
+            throw ExtractionException(summary)
         }
 
         return audioStreams
     }
 
-    private suspend fun getTranscodingUrl(endpointUrl: String): String {
-        var requestUrl = SoundcloudParsingHelper.withClientId(endpointUrl)
+    private fun applyFormatMetadata(
+        builder: AudioStream.Builder,
+        context: TranscodingContext
+    ): Boolean {
+        val normalizedPreset = context.preset.lowercase()
+        val normalizedMimeType = context.mimeType.lowercase()
 
-        val trackAuthorization = track!!.getString("track_authorization", "")
-        if (trackAuthorization.isNotEmpty()) {
-            requestUrl += "&track_authorization=${Utils.encodeUrlUtf8(trackAuthorization)}"
+        return when {
+            normalizedPreset.contains("aac_160k") || normalizedMimeType.contains("audio/mp4") -> {
+                builder.setMediaFormat(MediaFormat.M4A)
+                builder.setAverageBitrate(160)
+                true
+            }
+
+            normalizedPreset.contains("opus") || normalizedMimeType.contains("opus") -> {
+                builder.setMediaFormat(MediaFormat.OPUS)
+                builder.setAverageBitrate(64)
+                true
+            }
+
+            normalizedPreset.contains("mp3") ||
+                    normalizedPreset == "abr_sq" ||
+                    normalizedMimeType.contains("audio/mpegurl") ||
+                    normalizedMimeType.contains("audio/mpeg") -> {
+                builder.setMediaFormat(MediaFormat.MP3)
+                builder.setAverageBitrate(128)
+                true
+            }
+
+            else -> false
+        }
+    }
+
+    private suspend fun getTranscodingUrl(context: TranscodingContext): String {
+        return requestTranscodingUrl(context, forceRefreshClientId = false)
+    }
+
+    private suspend fun requestTranscodingUrl(
+        context: TranscodingContext,
+        forceRefreshClientId: Boolean
+    ): String {
+        val trackPageUrl = track!!.getString("permalink_url", url ?: originalUrl).ifEmpty { originalUrl }
+        val clientId = SoundcloudParsingHelper.clientId(trackPageUrl, forceRefresh = forceRefreshClientId)
+        val requestUrl = buildTranscodingRequestUrl(context.endpointUrl, clientId)
+        val response = try {
+            downloader.get(requestUrl)
+        } catch (e: Exception) {
+            throw buildTranscodingFailure(
+                context = context,
+                statusCode = null,
+                responseBody = null,
+                prefix = "SoundCloud transcoding request failed",
+                cause = e
+            )
         }
 
-        val responseBody = downloader.get(requestUrl).responseBody()
+        if (response.responseCode() in CLIENT_ID_RETRY_CODES) {
+            if (!forceRefreshClientId) {
+                SoundcloudParsingHelper.invalidateClientIdCache()
+                return requestTranscodingUrl(context, forceRefreshClientId = true)
+            }
+
+            throw buildTranscodingFailure(
+                context = context,
+                statusCode = response.responseCode(),
+                responseBody = response.responseBody(),
+                prefix = "SoundCloud transcoding request failed"
+            )
+        }
+
         val urlObject = try {
-            JsonParser.`object`().from(responseBody)
+            JsonParser.`object`().from(response.responseBody())
         } catch (e: JsonParserException) {
-            throw ExtractionException("Could not parse stream URL response", e)
+            if (!forceRefreshClientId) {
+                SoundcloudParsingHelper.invalidateClientIdCache()
+                return requestTranscodingUrl(context, forceRefreshClientId = true)
+            }
+
+            throw buildTranscodingFailure(
+                context = context,
+                statusCode = response.responseCode(),
+                responseBody = response.responseBody(),
+                prefix = "Could not parse SoundCloud stream URL response",
+                cause = e
+            )
         }
 
         val mediaUrl = urlObject.getString("url", "")
         if (mediaUrl.isEmpty()) {
-            throw ExtractionException("Could not extract stream URL")
+            throw buildTranscodingFailure(
+                context = context,
+                statusCode = response.responseCode(),
+                responseBody = response.responseBody(),
+                prefix = "Could not extract SoundCloud stream URL"
+            )
         }
         return mediaUrl
+    }
+
+    private fun buildTranscodingRequestUrl(endpointUrl: String, clientId: String): String {
+        var requestUrl = SoundcloudParsingHelper.withClientId(endpointUrl, clientId)
+        val trackAuthorization = track!!.getString("track_authorization", "")
+        if (trackAuthorization.isNotEmpty()) {
+            requestUrl += "&track_authorization=${Utils.encodeUrlUtf8(trackAuthorization)}"
+        }
+        return requestUrl
+    }
+
+    private fun buildTranscodingFailure(
+        context: TranscodingContext,
+        statusCode: Int?,
+        responseBody: String?,
+        prefix: String,
+        cause: Throwable? = null
+    ): ExtractionException {
+        val message = buildString {
+            append(prefix)
+            append(": ")
+            append(transcodingContextLabel(context))
+            append(", status=")
+            append(statusCode ?: "n/a")
+            append(", bodySnippet=")
+            append(bodySnippet(responseBody))
+        }
+        return if (cause == null) ExtractionException(message) else ExtractionException(message, cause)
+    }
+
+    private fun transcodingContextLabel(context: TranscodingContext): String {
+        return "preset=${context.preset}, protocol=${context.protocol.ifEmpty { "unknown" }}, " +
+                "endpoint=${context.endpointUrl.ifEmpty { "<missing>" }}"
+    }
+
+    private fun bodySnippet(responseBody: String?): String {
+        if (responseBody.isNullOrBlank()) {
+            return "<empty>"
+        }
+
+        return responseBody
+            .replace("\\s+".toRegex(), " ")
+            .take(BODY_SNIPPET_LENGTH)
+    }
+
+    private companion object {
+        val CLIENT_ID_RETRY_CODES = setOf(401, 403, 404)
+        const val BODY_SNIPPET_LENGTH = 160
     }
 }
