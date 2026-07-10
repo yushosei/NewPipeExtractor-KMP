@@ -5,6 +5,7 @@ import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
@@ -27,6 +28,7 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Divider
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
@@ -62,6 +64,9 @@ import com.yushosei.newpipe.extractor.stream.StreamInfoItem
 import com.yushosei.newpipe.ktx.interpunctize
 import com.yushosei.newpipe.ktx.isScrolledToEnd
 import com.yushosei.newpipe.ktx.millisToDuration
+import com.yushosei.newpipe.player.MediaPlayerController
+import com.yushosei.newpipe.player.MediaType
+import com.yushosei.newpipe.player.VideoPlayer
 import com.yushosei.newpipe.presentation.ui.component.CoverImage
 import com.yushosei.newpipe.presentation.ui.component.SearchTextField
 import kotlinx.coroutines.flow.collectLatest
@@ -69,10 +74,12 @@ import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.map
 import org.koin.compose.viewmodel.koinViewModel
+import org.koin.compose.koinInject
 
 @Composable
 fun MainScreen(
     viewModel: SearchViewModel = koinViewModel(),
+    mediaPlayerController: MediaPlayerController = koinInject(),
     listState: LazyListState = rememberLazyListState(),
 ) {
     val searchBarHideThreshold = 1
@@ -82,6 +89,9 @@ fun MainScreen(
     val result by viewModel.result.collectAsState()
     val uiState by viewModel.uiState.collectAsState()
     val selectedService by viewModel.selectedService.collectAsState()
+    val playbackMode by viewModel.playbackMode.collectAsState()
+    val currentMedia by viewModel.currentMedia.collectAsState()
+    val playbackError by viewModel.playbackError.collectAsState()
 
     val endOfListReached by remember {
         derivedStateOf {
@@ -112,10 +122,37 @@ fun MainScreen(
     Column(
         modifier = Modifier
             .fillMaxSize()
+            .background(MaterialTheme.colorScheme.background)
             .statusBarsPadding()
         //.bottomNavigationPadding()
     ) {
-        Box(modifier = Modifier.zIndex(0f)) {
+        if (currentMedia?.type == MediaType.VIDEO) {
+            VideoPlayer(
+                controller = mediaPlayerController,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .aspectRatio(16f / 9f)
+                    .background(Color.Black)
+            )
+            Text(
+                text = currentMedia?.title.orEmpty(),
+                style = MaterialTheme.typography.titleSmall,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp)
+            )
+        }
+
+        playbackError?.let { message ->
+            Text(
+                text = message,
+                color = MaterialTheme.colorScheme.error,
+                style = MaterialTheme.typography.bodySmall,
+                modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp)
+            )
+        }
+
+        Box(modifier = Modifier.weight(1f).zIndex(0f)) {
             LazyColumn(
                 modifier = Modifier.fillMaxSize(),
                 state = listState,
@@ -145,6 +182,10 @@ fun MainScreen(
                 serviceOptions = viewModel.serviceOptions,
                 onServiceSelected = {
                     viewModel.handleAction(SearchAction.ServiceChange(it))
+                },
+                playbackMode = playbackMode,
+                onPlaybackModeSelected = {
+                    viewModel.handleAction(SearchAction.PlaybackModeChange(it))
                 },
             )
         }
@@ -235,6 +276,8 @@ private fun SearchAppBar(
     selectedService: SearchServiceType,
     serviceOptions: List<SearchServiceType>,
     onServiceSelected: (SearchServiceType) -> Unit,
+    playbackMode: PlaybackMode,
+    onPlaybackModeSelected: (PlaybackMode) -> Unit,
     initialQuery: String = "",
     onRemoveHistory: (String) -> Unit = {},
     suggestions: List<String> = emptyList(),
@@ -295,6 +338,20 @@ private fun SearchAppBar(
                     serviceOptions = serviceOptions,
                     onServiceSelected = onServiceSelected
                 )
+            }
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 8.dp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                PlaybackMode.entries.forEach { mode ->
+                    FilterChip(
+                        selected = playbackMode == mode,
+                        onClick = { onPlaybackModeSelected(mode) },
+                        label = { Text(mode.label) }
+                    )
+                }
             }
             if (searchActive && suggestions.isNotEmpty()) {
                 LazyColumn(

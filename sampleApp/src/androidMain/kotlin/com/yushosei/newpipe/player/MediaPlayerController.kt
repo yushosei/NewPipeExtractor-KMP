@@ -9,7 +9,7 @@ import androidx.media3.common.Player.STATE_ENDED
 import androidx.media3.common.Player.STATE_READY
 import com.yushosei.newpipe.player.service.MediaService
 
-class MediaPlayerControllerImpl(private val context: Context, private val player: Player) :
+class MediaPlayerControllerImpl(private val context: Context, internal val player: Player) :
     MediaPlayerController {
 
     init {
@@ -89,4 +89,3 @@ class MediaPlayerControllerImpl(private val context: Context, private val player
         return player.isPlaying
     }
 }
-
