@@ -21,8 +21,8 @@ internal object SoundcloudParsingHelper {
 
     private val onUrlPattern = Regex("^https?://on\\.soundcloud\\.com/[0-9a-zA-Z]+$")
     private val hydrationPattern = Regex(
-        "window\\.__sc_hydration\\s*=\\s*(\\[.*?]);",
-        setOf(RegexOption.IGNORE_CASE, RegexOption.DOT_MATCHES_ALL)
+        "window\\.__sc_hydration\\s*=\\s*(\\[[\\s\\S]*?]);",
+        RegexOption.IGNORE_CASE
     )
     private val scriptAssetPattern = Regex(
         "<script[^>]+src=[\"']([^\"']*sndcdn\\.com/assets/[^\"']+\\.js[^\"']*)[\"'][^>]*>",
