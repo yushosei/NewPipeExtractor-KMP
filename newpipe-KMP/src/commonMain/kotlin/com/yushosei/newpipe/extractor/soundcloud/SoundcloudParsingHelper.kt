@@ -17,8 +17,13 @@ internal object SoundcloudParsingHelper {
 
     private const val SOUNDCLOUD_URL = "https://soundcloud.com"
     private const val CLIENT_ID_PATTERN = ",client_id:\\\"(.*?)\\\""
+    private const val API_CLIENT_HYDRATABLE = "apiClient"
 
     private val onUrlPattern = Regex("^https?://on\\.soundcloud\\.com/[0-9a-zA-Z]+$")
+    private val hydrationPattern = Regex(
+        "window\\.__sc_hydration\\s*=\\s*(\\[.*?]);",
+        setOf(RegexOption.IGNORE_CASE, RegexOption.DOT_MATCHES_ALL)
+    )
     private val scriptAssetPattern = Regex(
         "<script[^>]+src=[\"']([^\"']*sndcdn\\.com/assets/[^\"']+\\.js[^\"']*)[\"'][^>]*>",
         RegexOption.IGNORE_CASE
@@ -49,52 +54,55 @@ internal object SoundcloudParsingHelper {
         ArtworkVariant("t500x500", 500, 500, Image.ResolutionLevel.MEDIUM)
     )
 
-    suspend fun clientId(): String {
-        cachedClientId?.let { if (it.isNotEmpty()) return it }
+    suspend fun clientId(pageUrl: String? = null, forceRefresh: Boolean = false): String {
+        if (!forceRefresh) {
+            cachedClientId?.let { if (it.isNotEmpty()) return it }
+        }
 
         val downloader = NewPipe.downloader
-        val homeHtml = downloader.get(SOUNDCLOUD_URL).responseBody()
-        val rangeHeaders = mapOf("Range" to listOf("bytes=0-50000"))
+        val currentPageHtml = fetchPageHtmlOrNull(downloader, pageUrl)
+        extractClientIdFromHydration(currentPageHtml)?.let { clientId ->
+            cachedClientId = clientId
+            return clientId
+        }
 
-        val scriptUrls = scriptAssetPattern.findAll(homeHtml)
-            .map { it.groupValues[1] }
-            .toList()
-            .asReversed()
+        val homeHtml = when {
+            currentPageHtml != null && isHomepage(pageUrl) -> currentPageHtml
+            else -> fetchPageHtmlOrNull(downloader, SOUNDCLOUD_URL)
+        }
+        extractClientIdFromHydration(homeHtml)?.let { clientId ->
+            cachedClientId = clientId
+            return clientId
+        }
 
-        for (scriptUrl in scriptUrls) {
-            val absoluteScriptUrl = when {
-                scriptUrl.startsWith("//") -> "https:$scriptUrl"
-                scriptUrl.startsWith("/") -> "$SOUNDCLOUD_URL$scriptUrl"
-                else -> scriptUrl
-            }
+        extractClientIdFromHomepageAssets(downloader, homeHtml)?.let { clientId ->
+            cachedClientId = clientId
+            return clientId
+        }
 
+        homeHtml?.let { html ->
             try {
-                val scriptBody = downloader.get(absoluteScriptUrl, rangeHeaders).responseBody()
-                val extracted = Parser.matchGroup1(CLIENT_ID_PATTERN, scriptBody)
+                val extracted = Parser.matchGroup1(CLIENT_ID_PATTERN, html)
                 if (extracted.isNotEmpty()) {
                     cachedClientId = extracted
                     return extracted
                 }
             } catch (_: Exception) {
-                // Continue to the next script until one yields client_id.
             }
         }
 
-        // Fallback in case the id is directly available in the main page HTML.
-        try {
-            val extracted = Parser.matchGroup1(CLIENT_ID_PATTERN, homeHtml)
-            if (extracted.isNotEmpty()) {
-                cachedClientId = extracted
-                return extracted
-            }
-        } catch (_: Exception) {
-        }
-
-        throw ExtractionException("Couldn't extract SoundCloud client id")
+        throw ExtractionException(
+            "Couldn't extract SoundCloud client id" +
+                    if (pageUrl.isNullOrEmpty()) "" else " for $pageUrl"
+        )
     }
 
     suspend fun withClientId(url: String): String {
         return withClientId(url, clientId())
+    }
+
+    internal fun invalidateClientIdCache() {
+        cachedClientId = null
     }
 
     fun withClientId(url: String, clientId: String): String {
@@ -106,9 +114,11 @@ internal object SoundcloudParsingHelper {
     }
 
     suspend fun resolveFor(downloader: Downloader, trackUrl: String): JsonObject {
+        val resolvedClientId = clientId(trackUrl)
         val apiUrl = withClientId(
             "$SOUNDCLOUD_API_V2_URL" +
-                    "resolve?url=${Utils.encodeUrlUtf8(trackUrl)}"
+                    "resolve?url=${Utils.encodeUrlUtf8(trackUrl)}",
+            resolvedClientId
         )
 
         return try {
@@ -226,5 +236,83 @@ internal object SoundcloudParsingHelper {
                 variant.level
             )
         }
+    }
+
+    private suspend fun fetchPageHtmlOrNull(downloader: Downloader, pageUrl: String?): String? {
+        if (pageUrl.isNullOrBlank()) {
+            return null
+        }
+        return try {
+            downloader.get(pageUrl).responseBody()
+        } catch (_: Exception) {
+            null
+        }
+    }
+
+    private fun extractClientIdFromHydration(pageHtml: String?): String? {
+        if (pageHtml.isNullOrBlank()) {
+            return null
+        }
+
+        val hydrationJson = hydrationPattern.find(pageHtml)?.groupValues?.getOrNull(1) ?: return null
+        val hydration = try {
+            JsonParser.array().from(hydrationJson)
+        } catch (_: JsonParserException) {
+            return null
+        }
+
+        for (entry in hydration) {
+            val hydrationEntry = entry as? JsonObject ?: continue
+            if (hydrationEntry.getString("hydratable", "") != API_CLIENT_HYDRATABLE) {
+                continue
+            }
+
+            val hydratedClientId = hydrationEntry.getObject("data").getString("id", "")
+            if (hydratedClientId.isNotEmpty()) {
+                return hydratedClientId
+            }
+        }
+
+        return null
+    }
+
+    private suspend fun extractClientIdFromHomepageAssets(
+        downloader: Downloader,
+        homeHtml: String?
+    ): String? {
+        if (homeHtml.isNullOrBlank()) {
+            return null
+        }
+
+        val rangeHeaders = mapOf("Range" to listOf("bytes=0-50000"))
+        val scriptUrls = scriptAssetPattern.findAll(homeHtml)
+            .map { it.groupValues[1] }
+            .toList()
+            .asReversed()
+
+        for (scriptUrl in scriptUrls) {
+            val absoluteScriptUrl = when {
+                scriptUrl.startsWith("//") -> "https:$scriptUrl"
+                scriptUrl.startsWith("/") -> "$SOUNDCLOUD_URL$scriptUrl"
+                else -> scriptUrl
+            }
+
+            try {
+                val scriptBody = downloader.get(absoluteScriptUrl, rangeHeaders).responseBody()
+                val extracted = Parser.matchGroup1(CLIENT_ID_PATTERN, scriptBody)
+                if (extracted.isNotEmpty()) {
+                    return extracted
+                }
+            } catch (_: Exception) {
+                // Continue to the next script until one yields client_id.
+            }
+        }
+
+        return null
+    }
+
+    private fun isHomepage(pageUrl: String?): Boolean {
+        val normalizedPageUrl = pageUrl?.removeSuffix("/") ?: return false
+        return normalizedPageUrl == SOUNDCLOUD_URL
     }
 }

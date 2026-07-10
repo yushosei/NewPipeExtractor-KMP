@@ -113,4 +113,12 @@ internal object ClientsConstants {
      *
      */
     const val ANDROID_CLIENT_VERSION: String = "21.03.36"
+
+    // VISIONOS (visionOS YouTube app) client fields
+    const val VISIONOS_CLIENT_ID: String = "101"
+    const val VISIONOS_CLIENT_NAME: String = "VISIONOS"
+    const val VISIONOS_CLIENT_VERSION: String = "1.02"
+    const val VISIONOS_DEVICE_MODEL: String = "RealityDevice14,1"
+    const val VISIONOS_VERSION: String = "25.6.0.23O471"
+    const val VISIONOS_USER_AGENT_VERSION: String = "25_6_0"
 }

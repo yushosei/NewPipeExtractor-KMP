@@ -3,11 +3,13 @@ package com.yushosei.newpipe.presentation.ui.main
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.yushosei.newpipe.extractor.InfoItem
+import com.yushosei.newpipe.extractor.MediaFormat
 import com.yushosei.newpipe.extractor.Page
 import com.yushosei.newpipe.extractor.stream.StreamInfoItem
 import com.yushosei.newpipe.player.MediaItem
 import com.yushosei.newpipe.player.MediaPlayerController
 import com.yushosei.newpipe.player.MediaPlayerListener
+import com.yushosei.newpipe.player.MediaType
 import com.yushosei.newpipe.util.ExtractorHelper
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -34,12 +36,18 @@ data class SearchServiceType(
     val contentFilters: List<String>,
 )
 
+enum class PlaybackMode(val label: String) {
+    AUDIO("Audio"),
+    VIDEO("Video")
+}
+
 sealed interface SearchAction {
     data class QueryChange(val query: String = "") : SearchAction
     data object Search : SearchAction
     data object LoadMore : SearchAction
     data class LoadData(val item: StreamInfoItem) : SearchAction
     data class ServiceChange(val service: SearchServiceType) : SearchAction
+    data class PlaybackModeChange(val mode: PlaybackMode) : SearchAction
 }
 
 open class SearchUiState {
@@ -67,6 +75,15 @@ class SearchViewModel constructor(
 
     private val _selectedService = MutableStateFlow(serviceOptions.first())
     val selectedService: StateFlow<SearchServiceType> = _selectedService
+
+    private val _playbackMode = MutableStateFlow(PlaybackMode.AUDIO)
+    val playbackMode: StateFlow<PlaybackMode> = _playbackMode
+
+    private val _currentMedia = MutableStateFlow<MediaItem?>(null)
+    val currentMedia: StateFlow<MediaItem?> = _currentMedia
+
+    private val _playbackError = MutableStateFlow<String?>(null)
+    val playbackError: StateFlow<String?> = _playbackError
 
     private var searchText = ""
     val initialSearchText = searchText
@@ -105,11 +122,16 @@ class SearchViewModel constructor(
                     }
 
                     is SearchAction.LoadData -> {
-                        playAudio(action.item)
+                        play(action.item)
                     }
 
                     is SearchAction.ServiceChange -> {
                         changeService(action.service)
+                    }
+
+                    is SearchAction.PlaybackModeChange -> {
+                        _playbackMode.value = action.mode
+                        _playbackError.value = null
                     }
                 }
             }
@@ -127,34 +149,74 @@ class SearchViewModel constructor(
         else search()
     }
 
-    private fun playAudio(item: StreamInfoItem) = viewModelScope.launch {
-        ExtractorHelper.getStreamInfo(item.serviceId, item.url).let { info ->
-            val mediaItem = MediaItem(
-                title = info.name,
-                artist = info.uploaderName,
-                artworkUri = info.thumbnails.first().url,
-                url = info.audioStreams.first().content,
-            )
+    private fun play(item: StreamInfoItem) = viewModelScope.launch {
+        _playbackError.value = null
+        try {
+            val info = ExtractorHelper.getStreamInfo(item.serviceId, item.url)
+            val mediaItem = when (_playbackMode.value) {
+                PlaybackMode.AUDIO -> {
+                    val stream = info.audioStreams.maxWithOrNull(
+                        compareBy<com.yushosei.newpipe.extractor.stream.AudioStream> {
+                            if (it.format == MediaFormat.M4A) 1 else 0
+                        }.thenBy { it.averageBitrate }
+                    )
+                        ?: error("No audio stream is available for this item")
+                    MediaItem(
+                        title = info.name,
+                        artist = info.uploaderName,
+                        artworkUri = info.thumbnails.firstOrNull()?.url,
+                        url = stream.content,
+                        type = MediaType.AUDIO
+                    )
+                }
 
+                PlaybackMode.VIDEO -> {
+                    val stream = info.videoStreams
+                        .filter { it.isUrl() }
+                        .maxWithOrNull(
+                            compareBy<com.yushosei.newpipe.extractor.stream.VideoStream> {
+                                if (it.format == MediaFormat.MPEG_4) 1 else 0
+                            }
+                                .thenBy { it.height }
+                                .thenBy { it.fps }
+                                .thenBy { it.bitrate }
+                        )
+                    val videoUrl = stream?.content
+                        ?: info.hlsUrl.takeIf { it.isNotEmpty() }
+                        ?: error("No video stream with embedded audio is available for this item")
+                    MediaItem(
+                        title = info.name,
+                        artist = info.uploaderName,
+                        artworkUri = info.thumbnails.firstOrNull()?.url,
+                        url = videoUrl,
+                        type = MediaType.VIDEO
+                    )
+                }
+            }
+
+            _currentMedia.value = mediaItem
             mediaPlayerController.prepare(
-                mediaItem, object : MediaPlayerListener {
+                mediaItem,
+                object : MediaPlayerListener {
                     override fun onReady() {
                         mediaPlayerController.start()
                     }
 
-                    override fun onAudioCompleted() {
-
-                    }
+                    override fun onAudioCompleted() = Unit
 
                     override fun onError() {
-
+                        _playbackError.value = "Playback failed for ${mediaItem.title}"
                     }
-                })
+                }
+            )
+        } catch (e: Exception) {
+            _playbackError.value = e.message ?: "Could not load the selected stream"
         }
     }
 
     private fun search() = viewModelScope.launch {
         _uiState.value = SearchUiState.Loading
+        _playbackError.value = null
         try {
             val service = _selectedService.value
             val searchResult = ExtractorHelper.searchFor(
@@ -166,8 +228,9 @@ class SearchViewModel constructor(
             nextPage = searchResult.nextPage
             _result.value = searchResult.relatedItems
             _uiState.value = SearchUiState.Loaded
-        } catch (_: Exception) {
-
+        } catch (e: Exception) {
+            _uiState.value = SearchUiState.Error
+            _playbackError.value = e.message ?: "Search failed on this platform"
         }
     }
 
@@ -181,8 +244,8 @@ class SearchViewModel constructor(
 
                 nextPage = searchResult.nextPage
                 _result.value += searchResult.items
-            } catch (_: Exception) {
-
+            } catch (e: Exception) {
+                _playbackError.value = e.message ?: "Could not load more results"
             }
         }
     }

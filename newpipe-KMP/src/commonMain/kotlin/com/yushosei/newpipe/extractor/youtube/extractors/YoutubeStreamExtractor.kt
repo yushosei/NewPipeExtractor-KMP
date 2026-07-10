@@ -72,7 +72,7 @@ internal class YoutubeStreamExtractor(service: StreamingService, linkHandler: Li
     private var playerResponse: JsonObject? = null
     private var nextResponse: JsonObject? = null
 
-
+    private var visionOsStreamingData: JsonObject? = null
     private var iosStreamingData: JsonObject? = null
 
     private var androidStreamingData: JsonObject? = null
@@ -99,7 +99,8 @@ internal class YoutubeStreamExtractor(service: StreamingService, linkHandler: Li
     // We need to store the contentPlaybackNonces because we need to append them to videoplayback
     // URLs (with the cpn parameter).
     // Also because a nonce should be unique, it should be different between clients used, so
-    // three different strings are used.
+    // a different string is used for each client.
+    private var visionOsCpn: String? = null
     private var iosCpn: String? = null
     private var androidCpn: String? = null
     private var html5Cpn: String? = null
@@ -263,14 +264,12 @@ internal class YoutubeStreamExtractor(service: StreamingService, linkHandler: Li
         get() {
             assertPageFetched()
 
-            // Return HLS manifest of the iOS client first because on livestreams, the HLS manifest
-            // returned has separated audio and video streams and poTokens requirement do not seem to
-            // impact HLS formats (if a poToken is provided, it is added)
-            // Also, on videos, non-iOS clients don't have an HLS manifest URL in their player response
-            // unless a Safari macOS user agent is used
+            // Prefer an Apple client because its HLS manifest separates audio and video on live
+            // streams and is also available for regular videos.
             return getManifestUrl(
                 "hls",
                 listOf(
+                    Pair(visionOsStreamingData, null),
                     Pair(iosStreamingData, iosStreamingUrlsPoToken),
                     Pair(androidStreamingData, androidStreamingUrlsPoToken),
                     Pair(html5StreamingData, html5StreamingUrlsPoToken)
@@ -286,6 +285,26 @@ internal class YoutubeStreamExtractor(service: StreamingService, linkHandler: Li
             ItagType.AUDIO,
             audioStreamBuilderHelper,
             "audio"
+        )
+    }
+
+    override suspend fun videoStreams(): List<VideoStream> {
+        assertPageFetched()
+        return getItags(
+            FORMATS,
+            ItagType.VIDEO,
+            videoStreamBuilderHelper(areStreamsVideoOnly = false),
+            "video"
+        )
+    }
+
+    override suspend fun videoOnlyStreams(): List<VideoStream> {
+        assertPageFetched()
+        return getItags(
+            ADAPTIVE_FORMATS,
+            ItagType.VIDEO_ONLY,
+            videoStreamBuilderHelper(areStreamsVideoOnly = true),
+            "video-only"
         )
     }
 
@@ -343,6 +362,8 @@ internal class YoutubeStreamExtractor(service: StreamingService, linkHandler: Li
                 poTokenproviderInstance?.getIosClientPoToken(videoId)
             fetchIosClient(localization, contentCountry, videoId, iosPoTokenResult)
         }
+
+        fetchVisionOsClient(localization, contentCountry, videoId)
 
         fetchWebClientMetadata(localization, contentCountry, videoId)
 
@@ -552,6 +573,33 @@ internal class YoutubeStreamExtractor(service: StreamingService, linkHandler: Li
         }
     }
 
+    private suspend fun fetchVisionOsClient(
+        localization: Localization,
+        contentCountry: ContentCountry,
+        videoId: String
+    ) {
+        try {
+            visionOsCpn = generateContentPlaybackNonce()
+            val visionOsPlayerResponse = YoutubeStreamHelper.getVisionOsPlayerResponse(
+                contentCountry,
+                localization,
+                videoId,
+                visionOsCpn
+            )
+
+            if (!isPlayerResponseNotValid(visionOsPlayerResponse, videoId)) {
+                visionOsStreamingData = visionOsPlayerResponse.getObject(STREAMING_DATA)
+
+                if (Utils.isNullOrEmpty(playerCaptionsTracklistRenderer)) {
+                    playerCaptionsTracklistRenderer = visionOsPlayerResponse.getObject(CAPTIONS)
+                        .getObject(PLAYER_CAPTIONS_TRACKLIST_RENDERER)
+                }
+            }
+        } catch (_: Exception) {
+            // This client is a stream fallback and is not required for metadata extraction.
+        }
+    }
+
     private suspend fun fetchWebClientMetadata(
         localization: Localization,
         contentCountry: ContentCountry,
@@ -612,6 +660,7 @@ internal class YoutubeStreamExtractor(service: StreamingService, linkHandler: Li
             listOf(
                 Pair(html5StreamingData, Pair(html5Cpn, html5StreamingUrlsPoToken)),
                 Pair(androidStreamingData, Pair(androidCpn, androidStreamingUrlsPoToken)),
+                Pair(visionOsStreamingData, Pair(visionOsCpn, null)),
                 Pair(iosStreamingData, Pair(iosCpn, iosStreamingUrlsPoToken))
             ).flatMap { pair ->
                 val streamingData = pair.first
@@ -659,6 +708,26 @@ internal class YoutubeStreamExtractor(service: StreamingService, linkHandler: Li
             streamType == StreamType.POST_LIVE_STREAM ||
             !itagInfo.isUrl
         ) {
+            builder.setDeliveryMethod(DeliveryMethod.DASH)
+        }
+
+        builder.build()
+    }
+
+    private fun videoStreamBuilderHelper(
+        areStreamsVideoOnly: Boolean
+    ): (ItagInfo?) -> VideoStream = { itagInfo ->
+        val resolvedItagInfo = requireNotNull(itagInfo)
+        val itagItem = resolvedItagInfo.itagItem
+        val builder = VideoStream.Builder()
+            .setId(itagItem.id.toString())
+            .setContent(resolvedItagInfo.content, resolvedItagInfo.isUrl)
+            .setMediaFormat(itagItem.mediaFormat)
+            .setIsVideoOnly(areStreamsVideoOnly)
+            .setItagItem(itagItem)
+            .setResolution(itagItem.resolutionString ?: VideoStream.RESOLUTION_UNKNOWN)
+
+        if (streamType != StreamType.VIDEO_STREAM || !resolvedItagInfo.isUrl) {
             builder.setDeliveryMethod(DeliveryMethod.DASH)
         }
 

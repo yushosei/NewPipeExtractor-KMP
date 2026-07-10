@@ -37,7 +37,7 @@ class MediaPlayerControllerImpl : MediaPlayerController {
 
     private lateinit var timeObserver: Any
 
-    private val player: AVPlayer = AVPlayer()
+    internal val player: AVPlayer = AVPlayer()
 
     private var listener: MediaPlayerListener? = null
 

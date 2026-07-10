@@ -115,5 +115,25 @@ internal class InnertubeClientRequestInfo private constructor(
                 )
             )
         }
+
+        fun ofVisionOsClient(): InnertubeClientRequestInfo {
+            return InnertubeClientRequestInfo(
+                ClientInfo(
+                    ClientsConstants.VISIONOS_CLIENT_NAME,
+                    ClientsConstants.VISIONOS_CLIENT_VERSION,
+                    ClientsConstants.WATCH_CLIENT_SCREEN,
+                    ClientsConstants.VISIONOS_CLIENT_ID,
+                    null
+                ),
+                DeviceInfo(
+                    ClientsConstants.MOBILE_CLIENT_PLATFORM,
+                    "Apple",
+                    ClientsConstants.VISIONOS_DEVICE_MODEL,
+                    "visionOS",
+                    ClientsConstants.VISIONOS_VERSION,
+                    -1
+                )
+            )
+        }
     }
 }

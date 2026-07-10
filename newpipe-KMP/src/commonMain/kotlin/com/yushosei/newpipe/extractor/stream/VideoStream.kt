@@ -32,7 +32,7 @@ class VideoStream private constructor(
     deliveryMethod: DeliveryMethod,
     resolution: String,
     isVideoOnly: Boolean,
-    manifestUrl: String,
+    manifestUrl: String?,
     itagItem: ItagItem?
 ) :
     Stream(id, content, isUrl, format, deliveryMethod, manifestUrl) {
@@ -47,7 +47,6 @@ class VideoStream private constructor(
      *
      * @return the video resolution or [.RESOLUTION_UNKNOWN]
      */
-    @Deprecated("Use {@link #getResolution()} instead. ")
     val resolution: String
 
     /**
@@ -60,7 +59,6 @@ class VideoStream private constructor(
      *
      * @return `true` if this stream is video-only, `false` otherwise
      */
-    @Deprecated("Use {@link #isVideoOnly()} instead. ")
     val isVideoOnly: Boolean
 
     /**
@@ -403,7 +401,7 @@ class VideoStream private constructor(
 
             return VideoStream(
                 id!!, content!!, isUrl, mediaFormat, deliveryMethod, resolution!!,
-                isVideoOnly!!, manifestUrl!!, itagItem
+                isVideoOnly!!, manifestUrl, itagItem
             )
         }
     }

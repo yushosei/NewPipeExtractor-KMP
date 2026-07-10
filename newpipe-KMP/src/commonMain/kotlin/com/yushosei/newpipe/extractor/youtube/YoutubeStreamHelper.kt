@@ -8,6 +8,7 @@ import com.yushosei.newpipe.extractor.localization.Localization
 import com.yushosei.newpipe.extractor.youtube.InnertubeClientRequestInfo.Companion.ofAndroidClient
 import com.yushosei.newpipe.extractor.youtube.InnertubeClientRequestInfo.Companion.ofIosClient
 import com.yushosei.newpipe.extractor.youtube.InnertubeClientRequestInfo.Companion.ofTvHtml5Client
+import com.yushosei.newpipe.extractor.youtube.InnertubeClientRequestInfo.Companion.ofVisionOsClient
 import com.yushosei.newpipe.extractor.youtube.InnertubeClientRequestInfo.Companion.ofWebClient
 import com.yushosei.newpipe.extractor.youtube.InnertubeClientRequestInfo.Companion.ofWebEmbeddedPlayerClient
 import com.yushosei.newpipe.extractor.youtube.YoutubeParsingHelper.generateTParameter
@@ -18,6 +19,7 @@ import com.yushosei.newpipe.extractor.youtube.YoutubeParsingHelper.getIosUserAge
 import com.yushosei.newpipe.extractor.youtube.YoutubeParsingHelper.getOriginReferrerHeaders
 import com.yushosei.newpipe.extractor.youtube.YoutubeParsingHelper.getValidJsonResponseBody
 import com.yushosei.newpipe.extractor.youtube.YoutubeParsingHelper.getVisitorDataFromInnertube
+import com.yushosei.newpipe.extractor.youtube.YoutubeParsingHelper.getVisionOsUserAgent
 import com.yushosei.newpipe.extractor.youtube.YoutubeParsingHelper.prepareJsonBuilder
 import com.yushosei.newpipe.extractor.youtube.YoutubeParsingHelper.youTubeHeaders
 import com.yushosei.newpipe.extractor.utils.JsonUtils
@@ -374,6 +376,46 @@ internal object YoutubeStreamHelper {
         val url: String =
             (YoutubeParsingHelper.YOUTUBEI_V1_GAPIS_URL + PLAYER + "?" + YoutubeParsingHelper.DISABLE_PRETTY_PRINT_PARAMETER
                     + "&t=" + generateTParameter() + "&id=" + videoId)
+
+        return JsonUtils.toJsonObject(
+            getValidJsonResponseBody(
+                NewPipe.downloader.postWithContentTypeJson(url, headers, body, localization)
+            )
+        )
+    }
+
+    suspend fun getVisionOsPlayerResponse(
+        contentCountry: ContentCountry,
+        localization: Localization,
+        videoId: String,
+        cpn: String?
+    ): JsonObject {
+        val innertubeClientRequestInfo = ofVisionOsClient()
+        val headers = getMobileClientHeaders(getVisionOsUserAgent(localization))
+
+        innertubeClientRequestInfo.clientInfo.visitorData =
+            getVisitorDataFromInnertube(
+                innertubeClientRequestInfo,
+                localization,
+                contentCountry,
+                headers,
+                YoutubeParsingHelper.YOUTUBEI_V1_URL,
+                null,
+                false
+            )
+
+        val builder = prepareJsonBuilder(
+            localization,
+            contentCountry,
+            innertubeClientRequestInfo,
+            null
+        )
+        addVideoIdCpnAndOkChecks(builder, videoId, cpn)
+
+        val body = JsonWriter.string(builder.done()).toByteArray(Charsets.UTF_8)
+        val url = (YoutubeParsingHelper.YOUTUBEI_V1_GAPIS_URL + PLAYER + "?"
+                + YoutubeParsingHelper.DISABLE_PRETTY_PRINT_PARAMETER
+                + "&t=" + generateTParameter() + "&id=" + videoId)
 
         return JsonUtils.toJsonObject(
             getValidJsonResponseBody(

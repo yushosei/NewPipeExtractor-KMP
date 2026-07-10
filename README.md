@@ -1,17 +1,18 @@
 # NewPipeExtractor-KMP
 
-This repository is a Compose Multiplatform-compatible adaptation of the [NewPipeExtractor](https://github.com/TeamNewPipe/NewPipeExtractor), forked from version `v0.24.5`. It is intended for extracting YouTube and SoundCloud content within Kotlin Multiplatform projects.
+This repository is a Compose Multiplatform-compatible adaptation of the [NewPipeExtractor](https://github.com/TeamNewPipe/NewPipeExtractor). The migration started from `v0.24.5` and includes selected service-compatibility fixes from newer upstream versions. It is intended for extracting YouTube and SoundCloud content within Kotlin Multiplatform projects.
 
 ---
 
 ## 📌 Overview
 
 - Migrated to **Kotlin (Multiplatform)**.
-- Based on **NewPipeExtractor v0.24.5**.
+- Migration base: **NewPipeExtractor v0.24.5**, with targeted current-service compatibility fixes.
 - Internal modules have been refactored and improved for better readability, structure, and platform compatibility.
 - Replaced `nanojson` with a **pure Kotlin implementation**.
 - **Public APIs and function call patterns remain unchanged** to ensure compatibility with the original usage.
 - ✅ **Audio stream extraction supports both YouTube and SoundCloud**.
+- ✅ **YouTube progressive and video-only stream extraction is available**.
 - This project aims to serve as a foundation for integrating content extraction logic into Compose Multiplatform applications.
 
 ---
@@ -21,7 +22,7 @@ This repository is a Compose Multiplatform-compatible adaptation of the [NewPipe
 ### 1. Add Dependency
 
 ```kotlin
-implementation("io.github.yushosei:newpipe-extractor-kmp:1.2.1")
+implementation("io.github.yushosei:newpipe-extractor-kmp:1.3.0")
 ```
 
 ### 2. Initialization
@@ -56,7 +57,11 @@ ExtractorHelper.suggestionsFor(SERVICE_ID, searchText)
 ### 6. Stream Extraction
 
 ```kotlin
-ExtractorHelper.getStreamInfo(SERVICE_ID, item.url)
+val info = ExtractorHelper.getStreamInfo(SERVICE_ID, item.url)
+
+val audioStreams = info.audioStreams
+val progressiveVideoStreams = info.videoStreams // video + audio
+val adaptiveVideoStreams = info.videoOnlyStreams // pair with an audio stream
 ```
 
 For more details, refer to the sampleApp.
@@ -80,8 +85,8 @@ https://github.com/user-attachments/assets/35e628ea-50ad-4cba-a970-7e5cb4705823
 
 
 
-> ✅ This demo showcases **successful audio stream extraction** and **search suggestions retrieval** on both **Android** and **iOS** using Kotlin Multiplatform code.  
-> Although the test focused on audio streams for simplicity, the extractor is also capable of handling ~~**video streams**.~~ (TODO)
+> ✅ The sample supports **audio and video playback modes**. YouTube uses progressive video streams with embedded audio, while SoundCloud remains audio-only.
+> Platform video surfaces are implemented for Android (Media3), iOS (AVPlayer), desktop (VLCJ), and Wasm (HTML video).
 > All core logic is written in **pure Kotlin**, making it platform-independent and theoretically usable across **desktop and web environments** too.  
 >  
 > The current implementation has been verified on Android and iOS targets using Compose Multiplatform UI.  
@@ -132,20 +137,35 @@ This project includes a reimplementation of `nanojson` in **pure Kotlin**, rewri
 - [x] Search suggestion handling migrated to Kotlin
 - [x] Stream extraction (YouTube video info) migrated to Kotlin
 - [x] Audio stream extraction (YouTube, SoundCloud) migrated to Kotlin
+- [x] Progressive and video-only stream extraction (YouTube) migrated to Kotlin
+- [x] Compose Multiplatform sample video playback surfaces
 - [ ] Code cleanup and module publishing pending
 
 ---
 
 ## 🧪 Testing & Integration
-- [ ] Add shared `commonTest` cases
-- [ ] Use `runBlocking` and mock data for multiplatform testability
-- [ ] (Optional) Include Compose-based demo or preview usage
+- [x] Add shared `commonTest` cases
+- [x] Use `runBlocking` and mock data for multiplatform testability
+- [x] Include a Compose Multiplatform audio/video demo
+
+Run deterministic tests with:
+
+```shell
+./gradlew :newpipe-KMP:desktopTest
+```
+
+Run opt-in live service smoke tests with:
+
+```shell
+./gradlew :newpipe-KMP:desktopTest -Dnewpipe.liveTests=true
+```
 
 ---
 
 ## 📦 Module Info
 - **Forked by**: [@yushosei](https://github.com/yushosei)
-- **Base version**: `NewPipeExtractor v0.24.5`
+- **Migration base**: `NewPipeExtractor v0.24.5`
+- **Library version**: `1.3.0`
 
 ---
 
